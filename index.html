@@ -86,19 +86,6 @@
             font-size: 0.8em;
             z-index: 1000;
         }
-
-        #marker-help {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: white;
-            background: rgba(0,0,0,0.9);
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 999;
-        }
     </style>
 </head>
 <body>
@@ -113,13 +100,6 @@
 
     <div id="debug-info" class="hidden"></div>
 
-    <div id="marker-help" class="hidden">
-        <h3>🔍 Не бачу маркер</h3>
-        <p>Наведіть камеру на маркер А4</p>
-        <p>Переконайтеся, що достатнє освітлення</p>
-        <button id="retry-marker">Спробувати знову</button>
-    </div>
-
     <a-scene 
         mindar-image="imageTargetSrc: marker.mind; autoStart: false; maxTrack: 2;" 
         color-space="sRGB" 
@@ -133,93 +113,78 @@
         <a-assets>
             <audio id="fon" src="assets/sounds/fon.mp3" preload="auto"></audio>
             <audio id="fon1" src="assets/sounds/fon1.mp3" preload="auto"></audio>
-            <!-- Додаємо системний шрифт -->
-            <a-mixin id="text-style" text="font: https://cdn.aframe.io/fonts/mozillavr.fnt; color: #00bfff; align: center"></a-mixin>
         </a-assets>
 
         <!-- ВИПРАВЛЕНА КАМЕРА -->
-        <a-entity 
-            camera="active: true"
-            position="0 1.6 0"
+        <a-camera 
+            active="true" 
+            position="0 0 0"
             wasd-controls="enabled: false"
             look-controls="enabled: true"
             cursor="rayOrigin: mouse"
             raycaster="objects: .clickable">
-        </a-entity>
+        </a-camera>
 
         <!-- ОСНОВНИЙ МАРКЕР -->
         <a-entity mindar-image-target="targetIndex: 0" id="marker-anchor">
             
             <!-- ОСНОВНА СЦЕНА З КУЛЕЮ -->
-            <a-entity id="crystal-scene" position="0 0.3 0" scale="1.5 1.5 1.5">
+            <a-entity id="crystal-scene" position="0 0.2 0" scale="1 1 1">
                 
-                <!-- КРИШТАЛЕВА КУЛЯ -->
                 <a-sphere 
                     id="crystal-ball"
                     class="clickable"
-                    radius="0.25" 
-                    position="0 0.25 0"
-                    material="shader: custom; opacity: 0.7; refractionRatio: 0.95;"
+                    radius="0.15" 
+                    position="0 0.15 0"
+                    material="shader: custom; opacity: 0.6; refractionRatio: 0.95;"
                     cursor-listener> 
                 </a-sphere>
                 
-                <!-- ВНУТРІШНЄ СВІТІННЯ -->
                 <a-sphere 
                     id="inner-glow"
-                    radius="0.22" 
-                    position="0 0.25 0"
-                    material="shader: flat; color: #4a00e0; opacity: 0.8; transparent: true"
+                    radius="0.12" 
+                    position="0 0.15 0"
+                    material="shader: flat; color: #4a00e0; opacity: 0.7; transparent: true"
                     inner-glow>
                 </a-sphere>
                 
-                <!-- АУРА -->
                 <a-ring 
                     id="aura"
-                    radius-inner="0.28" 
-                    radius-outer="0.4" 
-                    position="0 0.25 0"
+                    radius-inner="0.18" 
+                    radius-outer="0.25" 
+                    position="0 0.15 0"
                     rotation="-90 0 0"
-                    material="shader: flat; color: #8a2be2; opacity: 0.6; transparent: true"
+                    material="shader: flat; color: #8a2be2; opacity: 0.5; transparent: true"
                     aura-effect>
                 </a-ring>
                 
-                <!-- ВИПРАВЛЕНИЙ ТЕКСТ - ВИКОРИСТОВУЄМО MIXIN -->
+                <!-- ВИПРАВЛЕНИЙ ТЕКСТ -->
                 <a-entity 
                     id="prophecy-text"
-                    position="0 0.7 0"
-                    mixin="text-style"
-                    text="width: 3; value: ; opacity: 0; wrapCount: 30"
+                    position="0 0.4 0"
+                    text="align: center; width: 2; color: #00bfff; value: ; opacity: 0;"
                     visible="false">
                 </a-entity>
                 
-                <!-- ПІДСТАВА -->
                 <a-cylinder 
-                    radius="0.35" 
-                    height="0.08" 
-                    position="0 -0.15 0"
-                    material="color: #2c2c2c; roughness: 0.8; metalness: 0.3">
-                </a-cylinder>
-                
-                <!-- ДОДАТКОВА ПІДСТАВА -->
-                <a-cylinder 
-                    radius="0.4" 
-                    height="0.03" 
-                    position="0 -0.2 0"
-                    material="color: #1a1a1a; roughness: 0.9">
+                    radius="0.2" 
+                    height="0.05" 
+                    position="0 -0.1 0"
+                    material="color: #2c2c2c; roughness: 0.8">
                 </a-cylinder>
                 
                 <!-- КОНТЕЙНЕР ДЛЯ ЧАСТИНОК -->
-                <a-entity id="particles-container" position="0 0.25 0"></a-entity>
+                <a-entity id="particles-container" position="0 0.15 0"></a-entity>
             </a-entity>
         </a-entity>
     </a-scene>
 
     <script>
-        // Спрощена версія без складних функцій
+        // 1. КАСТОМНИЙ ШЕЙДЕР ДЛЯ КРИШТАЛЕВОЇ КУЛІ
         AFRAME.registerShader('custom', {
             schema: {
                 time: {type: 'time', is: 'uniform', default: 0},
-                opacity: {type: 'number', is: 'uniform', default: 0.7},
+                opacity: {type: 'number', is: 'uniform', default: 0.6},
                 refractionRatio: {type: 'number', is: 'uniform', default: 0.95}
             },
             
@@ -259,7 +224,7 @@
             `
         });
 
-        // КОМПОНЕНТИ АНІМАЦІЇ
+        // 2. КОМПОНЕНТИ АНІМАЦІЇ
         AFRAME.registerComponent('inner-glow', {
             init: function() {
                 this.el.setAttribute('animation', {
@@ -286,7 +251,7 @@
             }
         });
 
-        // СИСТЕМА ЧАСТИНОК
+        // 3. СИСТЕМА ЧАСТИНОК
         AFRAME.registerComponent('particle-system', {
             init: function() {
                 this.particles = [];
@@ -298,23 +263,23 @@
                 this.active = true;
                 
                 const container = this.el;
-                const particleCount = 40;
+                const particleCount = 25;
                 
                 for (let i = 0; i < particleCount; i++) {
                     const particle = document.createElement('a-sphere');
-                    const size = 0.015 + Math.random() * 0.02;
+                    const size = 0.008 + Math.random() * 0.01;
                     particle.setAttribute('radius', size);
                     particle.setAttribute('color', i % 2 === 0 ? '#8a2be2' : '#00bfff');
                     particle.setAttribute('position', '0 0 0');
                     particle.setAttribute('opacity', '1');
                     
                     const angle = Math.random() * Math.PI * 2;
-                    const speed = 0.5 + Math.random() * 0.5;
+                    const speed = 0.3 + Math.random() * 0.4;
                     const targetX = Math.cos(angle) * speed;
-                    const targetY = Math.random() * 0.5;
+                    const targetY = Math.random() * 0.3;
                     const targetZ = Math.sin(angle) * speed;
                     
-                    const duration = 800 + Math.random() * 800;
+                    const duration = 600 + Math.random() * 600;
                     
                     particle.setAttribute('animation', {
                         property: 'position',
@@ -349,15 +314,15 @@
                     });
                     this.particles = [];
                     this.active = false;
-                }, 2500);
+                }, 2000);
             }
         });
         
-        // КОМПОНЕНТ ДЛЯ ТЕКСТУ
+        // 4. КОМПОНЕНТ ДЛЯ ТЕКСТУ
         AFRAME.registerComponent('text-reveal', {
             schema: {
                 text: {type: 'string', default: ''},
-                speed: {type: 'number', default: 35}
+                speed: {type: 'number', default: 40}
             },
             
             init: function() {
@@ -410,28 +375,24 @@
             }
         });
 
-        // ОСНОВНА ЛОГІКА
+        // 5. ОСНОВНА ЛОГІКА
         document.addEventListener('DOMContentLoaded', function() {
             const scene = document.querySelector('a-scene');
             const loadingScreen = document.getElementById('loading-screen');
             const instruction = document.getElementById('instruction');
             const debugInfo = document.getElementById('debug-info');
-            const markerHelp = document.getElementById('marker-help');
-            const retryButton = document.getElementById('retry-marker');
-            
             const crystalBall = document.getElementById('crystal-ball');
             const innerGlow = document.getElementById('inner-glow');
             const prophecyText = document.getElementById('prophecy-text');
             const particlesContainer = document.getElementById('particles-container');
             const aura = document.getElementById('aura');
-            
+            const crystalScene = document.getElementById('crystal-scene');
             const backgroundSound = document.getElementById('fon');
             const magicSound = document.getElementById('fon1');
             
             let systemReady = false;
             let prophecyActive = false;
             let markerVisible = false;
-            let markerTimeout = null;
             
             const prophecies = [
                 "Шлях до Успіху лежить через знання та Наполегливість",
@@ -443,37 +404,25 @@
                 "Віра в себе - Ключ до подолання будь-яких перешкод"
             ];
             
-            // ВІДСТЕЖЕННЯ МАРКЕРА
+            // ВИПРАВЛЕННЯ: Відстеження маркера
             scene.addEventListener('targetFound', event => {
-                console.log('Маркер знайдено!');
+                console.log('Маркер знайдено!', event.target);
                 markerVisible = true;
-                clearTimeout(markerTimeout);
-                markerHelp.classList.add('hidden');
-                
-                if (!prophecyActive) {
-                    instruction.classList.remove('hidden');
-                }
-                
+                instruction.classList.remove('hidden');
                 debugInfo.textContent = 'Маркер: знайдено';
             });
             
             scene.addEventListener('targetLost', event => {
-                console.log('Маркер втрачено!');
+                console.log('Маркер втрачено!', event.target);
                 markerVisible = false;
                 instruction.classList.add('hidden');
-                
-                markerTimeout = setTimeout(() => {
-                    if (!markerVisible) {
-                        markerHelp.classList.remove('hidden');
-                    }
-                }, 15000);
-                
                 debugInfo.textContent = 'Маркер: не знайдено';
             });
             
             scene.addEventListener('loaded', function() {
                 const mindarSystem = scene.systems["mindar-image-system"];
                 
+                // Додаємо обробник для першого кліку
                 const startExperience = () => {
                     mindarSystem.start(); 
                     console.log('MindAR system started');
@@ -492,9 +441,11 @@
                 
                 document.body.addEventListener('click', startExperience);
                 document.body.addEventListener('touchstart', startExperience);
+                
+                loadingScreen.addEventListener('click', startExperience);
             });
             
-            // ОБРОБНИК КЛІКУ
+            // ВИПРАВЛЕННЯ: Обробник кліку
             crystalBall.addEventListener('click', function(event) {
                 event.stopPropagation();
                 if (!systemReady || !markerVisible || prophecyActive) return;
@@ -507,7 +458,7 @@
                 
                 const randomProphecy = prophecies[Math.floor(Math.random() * prophecies.length)];
                 
-                // АНІМАЦІЇ
+                // Анімації
                 crystalBall.setAttribute('animation', {
                     property: 'components.material.material.uniforms.time.value',
                     to: 5000,
@@ -550,12 +501,12 @@
                             
                             innerGlow.setAttribute('animation', {
                                 property: 'components.material.material.opacity',
-                                to: 0.8,
+                                to: 0.7,
                                 dur: 3000,
                                 easing: 'easeOutQuad'
                             });
                             
-                            aura.setAttribute('material', 'opacity', 0.6);
+                            aura.setAttribute('material', 'opacity', 0.5);
                             aura.setAttribute('scale', '1 1 1');
                             
                             setTimeout(() => {
@@ -571,11 +522,7 @@
                 }, 1000);
             }
 
-            retryButton.addEventListener('click', function() {
-                markerHelp.classList.add('hidden');
-            });
-
-            // ІНІЦІАЛІЗАЦІЯ КОМПОНЕНТІВ
+            // Ініціалізація компонентів
             particlesContainer.setAttribute('particle-system', '');
             prophecyText.setAttribute('text-reveal', '');
         });
