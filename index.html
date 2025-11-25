@@ -8,20 +8,13 @@
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.3/dist/mindar-image-aframe.prod.js"></script>
     
-    <!-- ВИПРАВЛЕННЯ: Видалено проблемні компоненти -->
-    <!-- <script src="https://unpkg.com/aframe-particle-system-component@1.1.3/dist/aframe-particle-system-component.min.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-text-geometry-component@v0.5.2/dist/aframe-text-geometry-component.min.js"></script> -->
-    
     <style>
-        /* АДАПТИВНІСТЬ: Забезпечення повноекранного режиму на всіх пристроях */
         body {
             margin: 0;
             padding: 0;
             background: #000;
             font-family: Arial, sans-serif;
-            /* Забороняє прокрутку */
             overflow: hidden; 
-            /* Фіксує розмір для мобільних пристроїв */
             width: 100vw;
             height: 100vh;
         }
@@ -32,7 +25,6 @@
             height: 100%;
         }
 
-        /* Екран завантаження */
         #loading-screen {
             position: fixed;
             top: 0;
@@ -46,7 +38,7 @@
             align-items: center;
             z-index: 9999;
             color: #fff;
-            text-align: center; /* Вирівнювання тексту */
+            text-align: center;
         }
         
         .loading-spinner {
@@ -68,13 +60,12 @@
             display: none !important;
         }
         
-        /* Інструкція (адаптивний блок) */
         #instruction {
             position: absolute;
-            bottom: 50px; /* Збільшено відступ від краю для мобільних пристроїв */
+            bottom: 50px;
             left: 50%;
-            transform: translateX(-50%); /* Центрування по X */
-            max-width: 90%; /* Обмеження ширини */
+            transform: translateX(-50%);
+            max-width: 90%;
             text-align: center;
             color: white;
             background: rgba(0,0,0,0.8);
@@ -108,7 +99,6 @@
         <a-assets>
             <audio id="fon" src="assets/sounds/fon.mp3" preload="auto"></audio>
             <audio id="fon1" src="assets/sounds/fon1.mp3" preload="auto"></audio>
-            <!-- ВИПРАВЛЕННЯ: Видалено завантаження шрифту, який не використовується -->
         </a-assets>
 
         <a-camera active="false" position="0 0 0">
@@ -124,7 +114,8 @@
                 position="0 0.4 0"
                 material="shader: custom; opacity: 0.3; refractionRatio: 0.95;"
                 crystal-ball
-                cursor-listener> </a-sphere>
+                cursor-listener> 
+            </a-sphere>
             
             <a-sphere 
                 id="inner-glow"
@@ -144,7 +135,6 @@
                 aura-effect>
             </a-ring>
             
-            <!-- ВИПРАВЛЕННЯ: Використання стандартного текстового компонента A-Frame -->
             <a-text 
                 id="prophecy-text"
                 position="0 0.8 0"
@@ -164,12 +154,8 @@
                 material="color: #2c2c2c; roughness: 0.8">
             </a-cylinder>
             
-            <!-- ВИПРАВЛЕННЯ: Замінено particle-system на анімацію частинок через A-Frame -->
-            <a-entity 
-                id="magic-particles"
-                position="0 0.4 0"
-                magic-particles>
-            </a-entity>
+            <!-- Контейнер для частинок -->
+            <a-entity id="particles-container" position="0 0.4 0"></a-entity>
         </a-entity>
     </a-scene>
 
@@ -245,8 +231,8 @@
             }
         });
 
-        // ВИПРАВЛЕННЯ: Проста система частинок через створення елементів
-        AFRAME.registerComponent('magic-particles', {
+        // 3. ПРОСТА СИСТЕМА ЧАСТИНОК
+        AFRAME.registerComponent('particle-system', {
             init: function() {
                 this.particles = [];
                 this.active = false;
@@ -256,36 +242,51 @@
                 if (this.active) return;
                 this.active = true;
                 
+                const container = this.el;
+                const particleCount = 30;
+                
                 // Створюємо частинки
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < particleCount; i++) {
                     const particle = document.createElement('a-sphere');
-                    particle.setAttribute('radius', '0.02');
+                    particle.setAttribute('radius', '0.01');
                     particle.setAttribute('color', i % 2 === 0 ? '#8a2be2' : '#00bfff');
                     particle.setAttribute('position', '0 0 0');
+                    particle.setAttribute('opacity', '1');
                     
-                    // Випадковий напрямок
+                    // Випадковий напрямок та швидкість
                     const angle = Math.random() * Math.PI * 2;
-                    const distance = 0.3 + Math.random() * 0.2;
-                    const targetX = Math.cos(angle) * distance;
-                    const targetY = Math.random() * 0.5;
-                    const targetZ = Math.sin(angle) * distance;
+                    const speed = 0.5 + Math.random() * 0.5;
+                    const targetX = Math.cos(angle) * speed;
+                    const targetY = (Math.random() - 0.5) * 0.8;
+                    const targetZ = Math.sin(angle) * speed;
                     
+                    const duration = 800 + Math.random() * 700;
+                    
+                    // Анімація руху
                     particle.setAttribute('animation', {
                         property: 'position',
                         to: `${targetX} ${targetY} ${targetZ}`,
-                        dur: 1000 + Math.random() * 500,
+                        dur: duration,
                         easing: 'easeOutQuad'
                     });
                     
+                    // Анімація прозорості
                     particle.setAttribute('animation__opacity', {
                         property: 'components.material.material.opacity',
-                        from: '1',
                         to: '0',
-                        dur: 1000 + Math.random() * 500,
-                        startEvents: 'animationcomplete'
+                        dur: duration,
+                        easing: 'easeOutQuad'
                     });
                     
-                    this.el.appendChild(particle);
+                    // Анімація масштабу
+                    particle.setAttribute('animation__scale', {
+                        property: 'scale',
+                        to: '0.1 0.1 0.1',
+                        dur: duration,
+                        easing: 'easeOutQuad'
+                    });
+                    
+                    container.appendChild(particle);
                     this.particles.push(particle);
                 }
                 
@@ -302,7 +303,7 @@
             }
         });
         
-        // ВИПРАВЛЕННЯ: Спрощений компонент для тексту
+        // 4. КОМПОНЕНТ ДЛЯ ПОКРОКОВОГО ВІДОБРАЖЕННЯ ТЕКСТУ
         AFRAME.registerComponent('text-reveal', {
             schema: {
                 text: {type: 'string', default: ''},
@@ -354,7 +355,7 @@
             }
         });
         
-        // 4. ОСНОВНА ЛОГІКА ДОДАТКУ
+        // 5. ОСНОВНА ЛОГІКА ДОДАТКУ
         document.addEventListener('DOMContentLoaded', function() {
             const scene = document.querySelector('a-scene');
             const loadingScreen = document.getElementById('loading-screen');
@@ -362,7 +363,7 @@
             const crystalBall = document.getElementById('crystal-ball');
             const innerGlow = document.getElementById('inner-glow');
             const prophecyText = document.getElementById('prophecy-text');
-            const particles = document.querySelector('[magic-particles]');
+            const particlesContainer = document.getElementById('particles-container');
             const aura = document.getElementById('aura');
             const backgroundSound = document.getElementById('fon');
             const magicSound = document.getElementById('fon1');
@@ -434,7 +435,8 @@
                         easing: 'easeOutQuad'
                     });
                     
-                    particles.components['magic-particles'].activate();
+                    // Активуємо частинки
+                    particlesContainer.components['particle-system'].activate();
                     
                     magicSound.currentTime = 0;
                     magicSound.volume = 0.7;
@@ -455,7 +457,7 @@
                             
                             innerGlow.setAttribute('animation', {
                                 property: 'components.material.material.opacity',
-                                to: 0.3,
+                                to: 0.5,
                                 dur: 3000,
                                 easing: 'easeOutQuad'
                             });
@@ -473,6 +475,9 @@
                     }, 500);
                 }, 1000);
             }
+
+            // Ініціалізуємо систему частинок
+            particlesContainer.setAttribute('particle-system', '');
         });
     </script>
 </body>
