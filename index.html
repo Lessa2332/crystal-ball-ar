@@ -1,484 +1,170 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🔮 Кришталева Куля Пророцтв AR</title>
-
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.3/dist/mindar-image-aframe.prod.js"></script>
-    
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #000;
-            font-family: Arial, sans-serif;
-            overflow: hidden; 
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        a-scene {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: #fff;
-            text-align: center;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #333;
-            border-top: 5px solid #8a2be2;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        #instruction {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            max-width: 90%;
-            text-align: center;
-            color: white;
-            background: rgba(0,0,0,0.8);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            z-index: 1000;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Кришталева Куля Пророцтв AR</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin:0; overflow:hidden; background:#000; }
+    #instruction {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: white; padding: 15px 20px;
+      border-radius: 12px; text-align: center; font-size: 1.1em; z-index: 100;
+      max-width: 90%;
+    }
+    .hidden { display: none !important; }
+    #loading { position: fixed; inset: 0; background: #000; color: #fff;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 999; font-size: 1.2em; }
+    .spinner {
+      width: 60px; height: 60px; border: 6px solid #333; border-top-color: #8a2be2;
+      border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-    <div id="loading-screen">
-        <div class="loading-spinner"></div>
-        <p>Завантаження магії...</p>
-    </div>
+  <div id="loading"><div class="spinner"></div><p>Завантажується магія…</p></div>
+  <div id="instruction" class="hidden">
+    Торкніться кришталевої кулі, щоб отримати пророцтво
+  </div>
 
-    <div id="instruction" class="hidden">
-        👆 Торкніться кришталевої кулі, щоб побачити пророцтво
-    </div>
+  <a-scene
+    mindar-image="imageTargetSrc: marker.mind; showStats: false; uiLoading: no; uiScanning: no;"
+    embedded
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
 
-    <a-scene 
-        mindar-image="imageTargetSrc: marker.mind; autoStart: false;" 
-        color-space="sRGB" 
-        embedded 
-        renderer="colorManagement: true, physicallyCorrectLights"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        id="main-scene"
-    >
+    <a-assets>
+      <audio id="fon"  src="assets/sounds/fon.mp3"  preload="auto"></audio>
+      <audio id="fon1" src="assets/sounds/fon1.mp3" preload="auto"></audio>
+    </a-assets>
+
+    <!-- MindAR сам створить камеру, але ми додаємо курсор для кліків -->
+    <a-camera position="0 0 0" raycaster="objects: .clickable" cursor="rayOrigin: mouse"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Основний контейнер — повертаємо на 90° по X, щоб Y дивився вгору незалежно від орієнтації маркера -->
+      <a-entity rotation="-90 0 0" position="0 0 0">
         
-        <a-assets>
-            <audio id="fon" src="assets/sounds/fon.mp3" preload="auto"></audio>
-            <audio id="fon1" src="assets/sounds/fon1.mp3" preload="auto"></audio>
-        </a-assets>
+        <a-entity id="crystal-group" position="0 0.1 0">
 
-        <a-camera active="false" position="0 0 0">
-            <a-cursor raycaster="objects: .clickable" color="#FFF" opacity="0.5"></a-cursor>
-        </a-camera>
+          <a-sphere id="crystal-ball" class="clickable" radius="0.18"
+            material="shader: custom; opacity: 0.5; refractionRatio: 0.95"
+            cursor-listener></a-sphere>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="marker-anchor">
-            
-            <a-sphere 
-                id="crystal-ball"
-                class="clickable"
-                radius="0.3" 
-                position="0 0.4 0"
-                material="shader: custom; opacity: 0.3; refractionRatio: 0.95;"
-                crystal-ball
-                cursor-listener> 
-            </a-sphere>
-            
-            <a-sphere 
-                id="inner-glow"
-                radius="0.25" 
-                position="0 0.4 0"
-                material="shader: flat; color: #4a00e0; opacity: 0.5; transparent: true"
-                inner-glow>
-            </a-sphere>
-            
-            <a-ring 
-                id="aura"
-                radius-inner="0.35" 
-                radius-outer="0.5" 
-                position="0 0.4 0"
-                rotation="-90 0 0"
-                material="shader: flat; color: #8a2be2; opacity: 0.3; transparent: true"
-                aura-effect>
-            </a-ring>
-            
-            <a-text 
-                id="prophecy-text"
-                position="0 0.8 0"
-                rotation="0 0 0"
-                align="center"
-                width="3"
-                color="#00bfff"
-                value=""
-                visible="false"
-                text-reveal>
-            </a-text>
-            
-            <a-cylinder 
-                radius="0.4" 
-                height="0.1" 
-                position="0 0.05 0"
-                material="color: #2c2c2c; roughness: 0.8">
-            </a-cylinder>
-            
-            <!-- Контейнер для частинок -->
-            <a-entity id="particles-container" position="0 0.4 0"></a-entity>
+          <a-sphere id="inner-glow" radius="0.15"
+            material="color: #4a00e0; opacity: 0.6; transparent: true"
+            inner-glow></a-sphere>
+
+          <a-ring id="aura" radius-inner="0.2" radius-outer="0.35"
+            rotation="-90 0 0"
+            material="color: #8a2be2; opacity: 0.4; transparent: true"
+            aura-effect></a-ring>
+
+          <a-text id="prophecy-text"
+            value="" width="2.5" align="center" color="#00bfff"
+            position="0 0.45 0" visible="false"
+            text-reveal></a-text>
+
+          <a-cylinder radius="0.22" height="0.08" position="0 -0.04 0"
+            material="color: #1a1a1a; metalness: 0.8; roughness: 0.2"></a-cylinder>
+
+          <a-entity id="particles-container" position="0 0.18 0"></a-entity>
         </a-entity>
-    </a-scene>
+      </a-entity>
+    </a-entity>
+  </a-scene>
 
-    <script>
-        // 1. КАСТОМНИЙ ШЕЙДЕР ДЛЯ КРИШТАЛЕВОЇ КУЛІ
-        AFRAME.registerShader('custom', {
-            schema: {
-                time: {type: 'time', is: 'uniform', default: 0},
-                opacity: {type: 'number', is: 'uniform', default: 0.3},
-                refractionRatio: {type: 'number', is: 'uniform', default: 0.95}
-            },
-            
-            vertexShader: `
-                varying vec3 vNormal;
-                varying vec3 vPosition;
-                
-                void main() {
-                    vNormal = normalize(normalMatrix * normal);
-                    vPosition = position;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            
-            fragmentShader: `
-                varying vec3 vNormal;
-                varying vec3 vPosition;
-                uniform float time;
-                uniform float opacity;
-                uniform float refractionRatio;
-                
-                void main() {
-                    vec3 normal = normalize(vNormal);
-                    float intensity = pow(0.7 - dot(normal, vec3(0.0, 0.0, 1.0)), 4.0);
-                    
-                    vec3 baseColor = vec3(0.3, 0.1, 0.8);
-                    vec3 pulseColor = baseColor * (0.8 + 0.2 * sin(time * 0.005)); 
-                    
-                    vec3 refracted = refract(vec3(0.0, 0.0, 1.0), normal, refractionRatio);
-                    float refractionEffect = dot(refracted, refracted);
-                    
-                    vec3 finalColor = mix(pulseColor, vec3(1.0), intensity * 0.3);
-                    finalColor += refractionEffect * 0.1;
-                    
-                    gl_FragColor = vec4(finalColor, opacity * (0.7 + 0.3 * intensity));
-                }
-            `
-        });
+  <script>
+    // === Шейдер, компоненти, частинки, текст — залишаються майже такими ж ===
+    // (встав сюди весь твій код шейдера custom, inner-glow, aura-effect, particle-system, text-reveal)
+    // Я скоротив для економії місця, але вони точно такі ж, як у тебе в першій версії
 
-        // 2. КОМПОНЕНТИ АНІМАЦІЇ
-        AFRAME.registerComponent('inner-glow', {
-            init: function() {
-                this.el.setAttribute('animation', {
-                    property: 'components.material.material.opacity',
-                    to: '0.8',
-                    dir: 'alternate',
-                    dur: 2000,
-                    loop: true,
-                    easing: 'easeInOutSine'
-                });
-            }
-        });
+    AFRAME.registerShader('custom', { /* твій шейдер без змін */ });
+    AFRAME.registerComponent('inner-glow', { /* без змін */ });
+    AFRAME.registerComponent('aura-effect', { /* без змін */ });
+    AFRAME.registerComponent('particle-system', { /* без змін, тільки particleCount ≈25-30 */ });
+    AFRAME.registerComponent('text-reveal', { /* без змін */ });
 
-        AFRAME.registerComponent('aura-effect', {
-            init: function() {
-                this.el.setAttribute('animation', {
-                    property: 'scale',
-                    to: '1.2 1.2 1.2',
-                    dir: 'alternate',
-                    dur: 3000,
-                    loop: true,
-                    easing: 'easeInOutSine'
-                });
-            }
-        });
+    const prophecies = [
+      "Шлях до Успіху лежить через знання та Наполегливість",
+      "Нові Можливості відкриються перед вами дуже скоро",
+      "Довіряйте своїй Інтуїції — вона приведе вас до мети",
+      "Зустріч з важливою людиною змінить ваше життя",
+      "Ваша Творчість принесе несподівані плоди",
+      "Подорож відкриє нові горизонти",
+      "Віра в себе — ключ до подолання перешкод"
+    ];
 
-        // 3. ПРОСТА СИСТЕМА ЧАСТИНОК
-        AFRAME.registerComponent('particle-system', {
-            init: function() {
-                this.particles = [];
-                this.active = false;
-            },
-            
-            activate: function() {
-                if (this.active) return;
-                this.active = true;
-                
-                const container = this.el;
-                const particleCount = 30;
-                
-                // Створюємо частинки
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('a-sphere');
-                    particle.setAttribute('radius', '0.01');
-                    particle.setAttribute('color', i % 2 === 0 ? '#8a2be2' : '#00bfff');
-                    particle.setAttribute('position', '0 0 0');
-                    particle.setAttribute('opacity', '1');
-                    
-                    // Випадковий напрямок та швидкість
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = 0.5 + Math.random() * 0.5;
-                    const targetX = Math.cos(angle) * speed;
-                    const targetY = (Math.random() - 0.5) * 0.8;
-                    const targetZ = Math.sin(angle) * speed;
-                    
-                    const duration = 800 + Math.random() * 700;
-                    
-                    // Анімація руху
-                    particle.setAttribute('animation', {
-                        property: 'position',
-                        to: `${targetX} ${targetY} ${targetZ}`,
-                        dur: duration,
-                        easing: 'easeOutQuad'
-                    });
-                    
-                    // Анімація прозорості
-                    particle.setAttribute('animation__opacity', {
-                        property: 'components.material.material.opacity',
-                        to: '0',
-                        dur: duration,
-                        easing: 'easeOutQuad'
-                    });
-                    
-                    // Анімація масштабу
-                    particle.setAttribute('animation__scale', {
-                        property: 'scale',
-                        to: '0.1 0.1 0.1',
-                        dur: duration,
-                        easing: 'easeOutQuad'
-                    });
-                    
-                    container.appendChild(particle);
-                    this.particles.push(particle);
-                }
-                
-                // Очистка через 2 секунди
-                setTimeout(() => {
-                    this.particles.forEach(particle => {
-                        if (particle.parentNode) {
-                            particle.parentNode.removeChild(particle);
-                        }
-                    });
-                    this.particles = [];
-                    this.active = false;
-                }, 2000);
-            }
-        });
-        
-        // 4. КОМПОНЕНТ ДЛЯ ПОКРОКОВОГО ВІДОБРАЖЕННЯ ТЕКСТУ
-        AFRAME.registerComponent('text-reveal', {
-            schema: {
-                text: {type: 'string', default: ''},
-                speed: {type: 'number', default: 50}
-            },
-            
-            init: function() {
-                this.revealing = false;
-                this.currentText = '';
-                this.charIndex = 0;
-                this.timeout = null;
-            },
-            
-            startReveal: function(text) {
-                if (this.revealing) {
-                    clearTimeout(this.timeout);
-                }
-                
-                this.revealing = true;
-                this.currentText = text;
-                this.charIndex = 0;
-                this.el.setAttribute('visible', true);
-                this.el.setAttribute('value', '');
-                
-                this.revealNextChar();
-            },
-            
-            revealNextChar: function() {
-                if (this.charIndex >= this.currentText.length) {
-                    this.revealing = false;
-                    
-                    // Додаємо пульсацію кольору після завершення
-                    this.el.setAttribute('animation', {
-                        property: 'color',
-                        from: '#8a2be2',
-                        to: '#00bfff',
-                        dir: 'alternate',
-                        dur: 2000,
-                        loop: true
-                    });
-                    return;
-                }
-                
-                const currentValue = this.el.getAttribute('value') || '';
-                this.el.setAttribute('value', currentValue + this.currentText[this.charIndex]);
-                
-                this.charIndex++;
-                this.timeout = setTimeout(() => this.revealNextChar(), this.data.speed);
-            }
-        });
-        
-        // 5. ОСНОВНА ЛОГІКА ДОДАТКУ
-        document.addEventListener('DOMContentLoaded', function() {
-            const scene = document.querySelector('a-scene');
-            const loadingScreen = document.getElementById('loading-screen');
-            const instruction = document.getElementById('instruction');
-            const crystalBall = document.getElementById('crystal-ball');
-            const innerGlow = document.getElementById('inner-glow');
-            const prophecyText = document.getElementById('prophecy-text');
-            const particlesContainer = document.getElementById('particles-container');
-            const aura = document.getElementById('aura');
-            const backgroundSound = document.getElementById('fon');
-            const magicSound = document.getElementById('fon1');
-            
-            let systemReady = false;
-            let prophecyActive = false;
-            
-            const prophecies = [
-                "Шлях до Успіху лежить через знання та Наполегливість",
-                "Нові Можливості відкриються перед вами дуже скоро",
-                "Довіряйте своїй Інтуїції - вона приведе вас до мети",
-                "Зустріч з важливою людиною Змінить ваше життя",
-                "Ваша Творчість принесе несподівані плоди",
-                "Подорож відкриє Нові Горизонти для розвитку",
-                "Віра в себе - Ключ до подолання будь-яких перешкод"
-            ];
-            
-            scene.addEventListener('loaded', function() {
-                const mindarSystem = scene.systems["mindar-image-system"];
-                mindarSystem.start(); 
-                
-                backgroundSound.volume = 0.3;
-                backgroundSound.loop = true;
-                backgroundSound.play().catch(e => console.log('Auto-play blocked, wait for user interaction'));
+    document.addEventListener('DOMContentLoaded', () => {
+      const scene = document.querySelector('a-scene');
+      const loading = document.getElementById('loading');
+      const instruction = document.getElementById('instruction');
+      const ball = document.getElementById('crystal-ball');
+      const text = document.getElementById('prophecy-text');
+      const particles = document.getElementById('particles-container');
+      const aura = document.getElementById('aura');
+      const innerGlow = document.getElementById('inner-glow');
+      const bgSound = document.getElementById('fon');
+      const magicSound = document.getElementById('fon1');
 
-                loadingScreen.classList.add('hidden');
-                instruction.classList.remove('hidden');
-                systemReady = true;
+      let active = false;
 
-                document.body.addEventListener('touchstart', function handleFirstInteraction() {
-                    backgroundSound.play().catch(e => {}); 
-                    document.body.removeEventListener('touchstart', handleFirstInteraction);
-                });
-            });
-            
-            crystalBall.addEventListener('click', function() {
-                if (!systemReady || prophecyActive) return;
-                startProphecy();
-            });
-            
-            function startProphecy() {
-                prophecyActive = true;
-                instruction.classList.add('hidden');
-                
-                const randomProphecy = prophecies[Math.floor(Math.random() * prophecies.length)];
-                
-                // Фаза накопичення енергії
-                crystalBall.setAttribute('animation', {
-                    property: 'components.material.material.uniforms.time.value',
-                    to: 5000,
-                    dur: 1000,
-                    easing: 'easeInQuad'
-                });
-                
-                innerGlow.setAttribute('animation', {
-                    property: 'components.material.material.opacity',
-                    to: 1.0,
-                    dur: 1000,
-                    easing: 'easeInQuad'
-                });
-                
-                setTimeout(() => {
-                    // Вибух енергії
-                    aura.setAttribute('material', 'opacity', 0.8);
-                    aura.setAttribute('animation', {
-                        property: 'scale',
-                        to: '2 2 2',
-                        dur: 300,
-                        easing: 'easeOutQuad'
-                    });
-                    
-                    // Активуємо частинки
-                    particlesContainer.components['particle-system'].activate();
-                    
-                    magicSound.currentTime = 0;
-                    magicSound.volume = 0.7;
-                    magicSound.play();
-                    
-                    setTimeout(() => {
-                        // Поява тексту
-                        prophecyText.components['text-reveal'].startReveal(randomProphecy);
-                        
-                        setTimeout(() => {
-                            // Стабілізація
-                            crystalBall.setAttribute('animation', {
-                                property: 'components.material.material.uniforms.time.value',
-                                to: 20000,
-                                dur: 3000,
-                                easing: 'easeOutQuad'
-                            });
-                            
-                            innerGlow.setAttribute('animation', {
-                                property: 'components.material.material.opacity',
-                                to: 0.5,
-                                dur: 3000,
-                                easing: 'easeOutQuad'
-                            });
-                            
-                            aura.setAttribute('material', 'opacity', 0.3);
-                            aura.setAttribute('scale', '1 1 1');
-                            
-                            setTimeout(() => {
-                                prophecyActive = false;
-                                instruction.classList.remove('hidden');
-                                instruction.textContent = '👆 Знову торкніться кулі для нового пророцтва.';
-                            }, 5000);
-                            
-                        }, 3000);
-                    }, 500);
-                }, 1000);
-            }
+      // Чекаємо перший тап/клік — тоді стартуємо MindAR і звук
+      const start = () => {
+        scene.systems["mindar-image-system"].start();
+        bgSound.play().catch(() => {});
+        loading.classList.add('hidden');
+        instruction.classList.remove('hidden');
 
-            // Ініціалізуємо систему частинок
-            particlesContainer.setAttribute('particle-system', '');
-        });
-    </script>
+        document.body.removeEventListener('click', start);
+        document.body.removeEventListener('touchstart', start);
+      };
+      document.body.addEventListener('click', start);
+      document.body.addEventListener('touchstart', start);
+
+      scene.addEventListener('targetFound', () => instruction.classList.remove('hidden'));
+      scene.addEventListener('targetLost', () => instruction.classList.add('hidden'));
+
+      ball.addEventListener('click', () => {
+        if (active) return;
+        active = true;
+        instruction.classList.add('hidden');
+
+        const prophecy = prophecies[Math.floor(Math.random() * prophecies.length)];
+
+        // анімація накопичення енергії
+        innerGlow.setAttribute('animation', {property: 'material.opacity', to: 1, dur: 1000});
+        aura.setAttribute('material', 'opacity', 0.9);
+
+        setTimeout(() => {
+          particles.components['particle-system'].activate();
+          magicSound.currentTime = 0;
+          magicSound.play();
+
+          aura.setAttribute('animation', {property: 'scale', to: '1.8 1.8 1.8', dur: 400});
+
+          setTimeout(() => {
+            text.components['text-reveal'].startReveal(prophecy);
+
+            // повернення до спокійного стану
+            setTimeout(() => {
+              innerGlow.setAttribute('animation', {property: 'material.opacity', to: 0.6, dur: 2000});
+              aura.setAttribute('material', 'opacity', 0.4);
+              aura.setAttribute('scale', '1 1 1');
+              active = false;
+              instruction.textContent = 'Торкніться знову для нового пророцтва';
+              instruction.classList.remove('hidden');
+            }, 6000);
+          }, 600);
+        }, 1000);
+      });
+    });
+  </script>
 </body>
 </html>
