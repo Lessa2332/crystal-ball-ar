@@ -3,9 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- CSP для unsafe-eval (необхідно для MindAR/TensorFlow) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:;">
   <title>Кришталева Куля Пророцтв AR</title>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/",
+        "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+      }
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@23.1.2/dist/tween.umd.js"></script>
   <style>
     body { margin:0; overflow:hidden; background:#000; }
@@ -32,7 +41,10 @@
     Торкніться кришталевої кулі, щоб отримати пророцтво
   </div>
 
-  <script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { MindARThree } from 'mindar-image-three';
+
     // Пророцтва
     const prophecies = [
       "Шлях до Успіху лежить через знання та Наполегливість",
@@ -45,7 +57,7 @@
     ];
 
     // Глобальні змінні
-    let container, renderer, scene, camera, mindarThree, anchor;
+    let mindarThree, anchor;
     let crystalGroup, crystalBall, innerGlow, aura, prophecyText, particlesContainer, base;
     let raycaster, mouse, isActive = false;
     let bgSound, magicSound;
@@ -73,47 +85,13 @@
       }
     `;
 
-    // Ініціалізація Three.js
-    function initThreeJS() {
-      container = document.body;
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-      camera.position.set(0, 0, 0);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.physicallyCorrectLights = true;
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      container.appendChild(renderer.domElement);
-
-      // Raycaster для кліків
-      raycaster = new THREE.Raycaster();
-      mouse = new THREE.Vector2();
-
-      // Освітлення
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(ambientLight);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(0, 1, 0);
-      scene.add(directionalLight);
-
-      // Аудіо preload
-      bgSound = new Audio('assets/sounds/fon.mp3');
-      bgSound.loop = true;
-      bgSound.preload = 'auto';
-      magicSound = new Audio('assets/sounds/fon1.mp3');
-      magicSound.preload = 'auto';
-    }
-
     // Створення 3D-моделей
-    function createModels() {
+    function createModels({ scene, camera }) {
       crystalGroup = new THREE.Group();
-      // Повернення групи на -90° по X для орієнтації
       crystalGroup.rotation.x = -Math.PI / 2;
-      crystalGroup.position.y = 0.1; // Зміщення для видимості
+      crystalGroup.position.y = 0.1;
 
-      // Кришталева куля (clickable)
+      // Кришталева куля
       const crystalGeometry = new THREE.SphereGeometry(0.18, 32, 32);
       const crystalMaterial = new THREE.ShaderMaterial({
         vertexShader: customVertexShader,
@@ -139,7 +117,7 @@
       innerGlow = new THREE.Mesh(glowGeometry, glowMaterial);
       crystalGroup.add(innerGlow);
 
-      // Аура (кільце)
+      // Аура
       const auraGeometry = new THREE.RingGeometry(0.2, 0.35, 32);
       const auraMaterial = new THREE.MeshBasicMaterial({
         color: 0x8a2be2,
@@ -163,7 +141,7 @@
       base.position.y = -0.04;
       crystalGroup.add(base);
 
-      // Текст пророцтва (CanvasTexture)
+      // Текст пророцтва
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 256;
@@ -181,13 +159,13 @@
       prophecyText.position.set(0, 0.45, 0);
       crystalGroup.add(prophecyText);
 
-      // Частинки (~25)
+      // Частинки
       const particleCount = 25;
       const positions = new Float32Array(particleCount * 3);
       for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = (Math.random() - 0.5) * 0.2; // x
-        positions[i + 1] = (Math.random() - 0.5) * 0.2; // y
-        positions[i + 2] = (Math.random() - 0.5) * 0.2; // z
+        positions[i] = (Math.random() - 0.5) * 0.2;
+        positions[i + 1] = (Math.random() - 0.5) * 0.2;
+        positions[i + 2] = (Math.random() - 0.5) * 0.2;
       }
       const particleGeometry = new THREE.BufferGeometry();
       particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -204,6 +182,17 @@
       particlesContainer.position.set(0, 0.18, 0);
       crystalGroup.add(particlesContainer);
       particles.userData = { active: false };
+
+      // Освітлення
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(0, 1, 0);
+      scene.add(directionalLight);
+
+      // Raycaster
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
     }
 
     // Анімація reveal тексту
@@ -253,11 +242,13 @@
     function onClick(event) {
       if (!isTargetFound || isActive) return;
 
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX || (event.touches && event.touches[0].clientX)) - rect.left) / rect.width * 2 - 1;
-      mouse.y = -((event.clientY || (event.touches && event.touches[0].clientY)) - rect.top) / rect.height * 2 + 1;
+      const rect = mindarThree.renderer.domElement.getBoundingClientRect();
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      mouse.x = (clientX - rect.left) / rect.width * 2 - 1;
+      mouse.y = -(clientY - rect.top) / rect.height * 2 + 1;
 
-      raycaster.setFromCamera(mouse, camera);
+      raycaster.setFromCamera(mouse, mindarThree.camera);
       const intersects = raycaster.intersectObjects([crystalBall], true);
 
       if (intersects.length > 0) {
@@ -267,7 +258,6 @@
 
         const prophecy = prophecies[Math.floor(Math.random() * prophecies.length)];
 
-        // Анімація
         new TWEEN.Tween(innerGlow.material).to({ opacity: 1 }, 1000).start();
         new TWEEN.Tween(aura.material).to({ opacity: 0.9 }, 1000).start();
 
@@ -281,7 +271,6 @@
             const canvas = prophecyText.material.map.image;
             startTextReveal(prophecy, canvas);
 
-            // Повернення до спокою
             setTimeout(() => {
               new TWEEN.Tween(innerGlow.material).to({ opacity: 0.6 }, 2000).start();
               new TWEEN.Tween(aura.material).to({ opacity: 0.4 }, 2000).start();
@@ -298,27 +287,33 @@
       }
     }
 
-    // Анімаційний луп
-    function animate() {
-      requestAnimationFrame(animate);
-      TWEEN.update();
-      renderer.render(scene, camera);
+    // Resize
+    function onResize() {
+      if (mindarThree && mindarThree.camera && mindarThree.renderer) {
+        mindarThree.camera.aspect = window.innerWidth / window.innerHeight;
+        mindarThree.camera.updateProjectionMatrix();
+        mindarThree.renderer.setSize(window.innerWidth, window.innerHeight);
+      }
     }
 
-    // Ініціалізація MindAR
-    async function initMindAR() {
-      mindarThree = new window.MINDAR.IMAGE.MindARThree({
-        container: document.body,
-        imageTargetSrc: 'marker.mind',
-        uiLoading: 'no',
-        uiScanning: 'no'
-      });
+    // Ініціалізація MindAR та Three.js
+    async function initAR() {
+      const { renderer, scene, camera } = mindarThree;
+      createModels({ scene, camera });
+      anchor.group.add(crystalGroup);
 
-      ({ renderer, scene, camera } = mindarThree); // Використовуємо MindARThree's renderer/scene/camera
-      anchor = mindarThree.addAnchor(0); // Додаємо anchor для маркера
-      anchor.group.add(crystalGroup); // Прив’язуємо crystalGroup до маркера
+      // Аудіо
+      bgSound = new Audio('assets/sounds/fon.mp3');
+      bgSound.loop = true;
+      bgSound.load(); // preload
+      magicSound = new Audio('assets/sounds/fon1.mp3');
+      magicSound.load();
 
       await mindarThree.start();
+      renderer.setAnimationLoop(() => {
+        TWEEN.update();
+        renderer.render(scene, camera);
+      });
 
       anchor.onTargetFound = () => {
         isTargetFound = true;
@@ -331,15 +326,19 @@
 
       const loading = document.getElementById('loading');
       loading.classList.add('hidden');
+      bgSound.play().catch(() => {});
     }
 
-    // Старт AR
+    // Старт на перший тап/клік
     function startAR() {
-      initThreeJS();
-      createModels();
-      animate();
-      initMindAR().catch(console.error);
-      bgSound.play().catch(() => {});
+      mindarThree = new MindARThree({
+        container: document.body,
+        imageTargetSrc: 'marker.mind',
+        uiLoading: 'no',
+        uiScanning: 'no'
+      });
+      anchor = mindarThree.addAnchor(0);
+      initAR().catch(console.error);
     }
 
     // Event listeners
@@ -347,13 +346,7 @@
     document.body.addEventListener('touchstart', onClick, { passive: false });
     document.body.addEventListener('click', startAR, { once: true });
     document.body.addEventListener('touchstart', startAR, { once: true });
-
-    // Resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    window.addEventListener('resize', onResize);
   </script>
 </body>
 </html>
