@@ -2,28 +2,70 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, user-scalable=0">
   <title>Кришталева Куля Пророцтв</title>
 
-  <!-- Критичні скрипти з CDN, які працюють на GitHub Pages -->
+  <!-- Базовий стек для GitHub Pages (без CSP-конфліктів) -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin:0; overflow:hidden; background:#000; font-family: 'Georgia', serif; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+      background: #000 !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+    a-scene {
+      width: 100vw !important;
+      height: 100vh !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 1 !important;
+    }
     .loader {
-      position: fixed; inset: 0; background: #000; color: #e0ccff;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 9999; font-size: 2em; text-align: center;
+      position: fixed !important;
+      inset: 0 !important;
+      background: #000 !important;
+      color: #e0ccff !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      z-index: 9999 !important;
+      font-size: 2em !important;
+      text-align: center !important;
+      font-family: 'Georgia', serif !important;
     }
     #instruction {
-      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg, rgba(80,0,150,0.9), rgba(0,0,0,0.7));
-      color: #e0ccff; padding: 16px 32px; border-radius: 30px; font-size: 1.3em;
-      z-index: 100; pointer-events: none; backdrop-filter: blur(10px);
-      border: 1px solid rgba(138,43,226,0.5); box-shadow: 0 0 30px rgba(138,43,226,0.6);
+      position: fixed !important;
+      bottom: 30px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      background: linear-gradient(135deg, rgba(80,0,150,0.9), rgba(0,0,0,0.7)) !important;
+      color: #e0ccff !important;
+      padding: 16px 32px !important;
+      border-radius: 30px !important;
+      font-size: 1.3em !important;
+      z-index: 100 !important;
+      pointer-events: none !important;
+      backdrop-filter: blur(10px) !important;
+      border: 1px solid rgba(138,43,226,0.5) !important;
+      box-shadow: 0 0 30px rgba(138,43,226,0.6) !important;
+      max-width: 90% !important;
     }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
+    /* Фікс для чорного екрану на мобільних */
+    @media (max-width: 768px) {
+      a-scene { height: 100vh !important; width: 100vw !important; }
+      body { height: 100vh !important; }
+    }
   </style>
 </head>
 <body>
@@ -36,59 +78,71 @@
 
   <a-scene
     embedded
-    mindar-image="imageTargetSrc: marker.mind; uiLoading: no; uiScanning: no;"
+    mindar-image="imageTargetSrc: marker.mind; uiLoading: no; uiScanning: no; filterMinCF: 0.001; filterBeta: 0.01;"
     color-space="sRGB"
-    renderer="colorManagement: true"
+    renderer="colorManagement: true; alpha: true; physicallyCorrectLights: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
+    background="color: #000"
   >
     <a-assets>
       <audio id="bg" src="assets/sounds/fon.mp3" preload="auto" loop></audio>
       <audio id="magic" src="assets/sounds/fon1.mp3" preload="auto"></audio>
     </a-assets>
 
+    <!-- Освітлення -->
+    <a-entity light="type: ambient; color: #ffffff; intensity: 0.4"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.8" position="-1 1 1"></a-entity>
+
     <!-- Камера -->
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
 
     <!-- Основна сцена -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-entity position="0 0.1 0" rotation="-90 0 0">
+      <a-entity id="crystal-group" position="0 0.1 0" rotation="-90 0 0">
 
-        <!-- Кришталева куля з рефракцією -->
+        <!-- Кришталева куля (спрощений шейдер без eval) -->
         <a-sphere
           id="ball"
           radius="0.18"
-          material="color: #88ccff; transparent: true; opacity: 0.7; metalness: 0.8; roughness: 0.1; side: back"
+          material="color: #88ccff; transparent: true; opacity: 0.75; metalness: 0.8; roughness: 0.1; emissive: #4a00e0; emissiveIntensity: 0.3"
           class="clickable"
-          animation="property: rotation; to: 0 360 0; dur: 20000; loop: true; easing: linear"
+          animation="property: rotation; to: 0 360 0; dur: 15000; loop: true; easing: linear"
         ></a-sphere>
 
-        <!-- Внутрішнє сяйво -->
+        <!-- Внутрішнє сяйво (additive blending) -->
         <a-sphere radius="0.15"
-          material="color: #9400ff; transparent: true; opacity: 0.7; blending: additive"
-          animation="property: material.opacity; from: 0.4; to: 1; dur: 3000; loop: true; dir: alternate"
+          material="color: #9400ff; transparent: true; opacity: 0.6; blending: additive; shader: flat"
+          animation="property: material.opacity; from: 0.4; to: 0.9; dur: 2500; loop: true; dir: alternate; easing: easeInOutSine"
         ></a-sphere>
 
-        <!-- Аура -->
+        <!-- Пульсуюча аура -->
         <a-ring id="aura" radius-inner="0.22" radius-outer="0.45" rotation="-90 0 0"
-          material="color: #8a2be2; transparent: true; opacity: 0.5; side: double; blending: additive"
+          material="color: #8a2be2; transparent: true; opacity: 0.5; side: double; blending: additive; shader: flat"
+          animation="property: scale; to: 1.5 1.5 1.5; dur: 1200; loop: true; dir: alternate; easing: easeInOutElastic"
         ></a-ring>
 
-        <!-- Підставка -->
+        <!-- Підставка (металева) -->
         <a-cylinder position="0 -0.04 0" radius="0.23" height="0.08"
-          material="color: #1a1a1a; metalness: 0.95; roughness: 0.2"
+          material="color: #1a1a1a; metalness: 0.95; roughness: 0.15"
         ></a-cylinder>
 
-        <!-- Текст пророцтва -->
-        <a-plane id="text" position="0 0.5 0" width="3" height="1.2"
+        <!-- Текст пророцтва (з fade) -->
+        <a-plane id="prophecy-text" position="0 0.5 0" width="3" height="1.2"
           material="color: #00bfff; transparent: true; opacity: 0; shader: flat"
-          text="value: ; align: center; color: white; width: 10; wrapCount: 35"
+          text="value: ; align: center; color: #ffffff; width: 10; wrapCount: 35; zOffset: 0.01"
+          animation__fadein="property: material.opacity; to: 1; dur: 1500; easing: easeOutQuad"
+          animation__fadeout="property: material.opacity; to: 0; dur: 1000; begin: fadeout"
         ></a-plane>
+
+        <!-- Частинки (прості points) -->
+        <a-entity id="particles" position="0 0.18 0"></a-entity>
       </a-entity>
     </a-entity>
   </a-scene>
 
   <script>
+    // Пророцтва
     const prophecies = [
       "Шлях до Успіху лежить через знання та Наполегливість",
       "Нові Можливості відкриються перед вами дуже скоро",
@@ -102,46 +156,112 @@
     let isActive = false;
     const ball = document.querySelector('#ball');
     const aura = document.querySelector('#aura');
-    const text = document.querySelector('#text');
+    const prophecyText = document.querySelector('#prophecy-text');
+    const particles = document.querySelector('#particles');
     const instruction = document.getElementById('instruction');
-    const bg = document.querySelector('#bg');
-    const magic = document.querySelector('#magic');
+    const bgSound = document.querySelector('#bg');
+    const magicSound = document.querySelector('#magic');
 
+    // Створення частинок (без eval)
+    function createParticles() {
+      const geometry = new THREE.BufferGeometry();
+      const count = 30;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 0.3;
+        positions[i + 1] = (Math.random() - 0.5) * 0.3;
+        positions[i + 2] = (Math.random() - 0.5) * 0.3;
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0x8a2be2,
+        size: 0.015,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending
+      });
+      const points = new THREE.Points(geometry, material);
+      particles.object3D.add(points);
+      particles.points = points;
+    }
+    createParticles();
+
+    // Анімація частинок (burst при кліку)
+    function burstParticles() {
+      if (!particles.points) return;
+      particles.points.material.opacity = 0.8;
+      const pos = particles.points.geometry.attributes.position.array;
+      const animate = () => {
+        for (let i = 0; i < pos.length; i += 3) {
+          pos[i] += (Math.random() - 0.5) * 0.02;
+          pos[i + 1] += Math.random() * 0.03;
+          pos[i + 2] += (Math.random() - 0.5) * 0.02;
+        }
+        particles.points.geometry.attributes.position.needsUpdate = true;
+        setTimeout(() => {
+          if (particles.points.material.opacity > 0) {
+            particles.points.material.opacity -= 0.05;
+            requestAnimationFrame(animate);
+          } else {
+            particles.points.material.opacity = 0;
+          }
+        }, 50);
+      };
+      animate();
+    }
+
+    // Клік по кулі
     ball.addEventListener('click', () => {
       if (isActive) return;
       isActive = true;
       instruction.classList.add('hidden');
 
       const prophecy = prophecies[Math.floor(Math.random() * prophecies.length)];
-      text.setAttribute('text', 'value', prophecy);
-      text.setAttribute('material', 'opacity', 1);
+      prophecyText.setAttribute('text', { value: prophecy });
+      prophecyText.emit('animationstart'); // Запуск fadein
+      setTimeout(() => prophecyText.emit('fadeout'), 5000); // Fadeout через 5с
 
       // Ефекти
-      aura.setAttribute('animation', 'property: scale; to: 2 2 2; dur: 600; easing: easeOutElastic');
+      aura.setAttribute('animation', { property: 'scale', to: '2 2 2', dur: 600, easing: 'easeOutElastic' });
       setTimeout(() => aura.setAttribute('scale', '1 1 1'), 600);
+      burstParticles();
 
-      magic.currentTime = 0;
-      magic.play().catch(() => {});
+      magicSound.currentTime = 0;
+      magicSound.play().catch(() => {});
 
       setTimeout(() => {
-        text.setAttribute('material', 'opacity', 0);
         isActive = false;
         instruction.textContent = 'Торкніться знову для нового пророцтва';
         instruction.classList.remove('hidden');
-      }, 7000);
+      }, 8000);
     });
 
-    // Маркер знайдено
-    document.querySelector('a-entity[mindar-image-target]').addEventListener('targetFound', () => {
-      document.getElementById('loader').classList.add('hidden');
-      instruction.classList.remove('hidden');
-      bg.play().catch(() => {});
-    });
+    // Події маркера
+    const target = document.querySelector('a-entity[mindar-image-target]');
+    if (target) {
+      target.addEventListener('targetFound', () => {
+        document.getElementById('loader').classList.add('hidden');
+        instruction.classList.remove('hidden');
+        bgSound.play().catch(() => {});
+      });
+      target.addEventListener('targetLost', () => {
+        instruction.classList.add('hidden');
+        bgSound.pause();
+        document.getElementById('loader').classList.remove('hidden');
+      });
+    }
 
-    document.querySelector('a-entity[mindar-image-target]').addEventListener('targetLost', () => {
-      instruction.classList.add('hidden');
-      bg.pause();
-    });
+    // Фікс resize для мобільних (викликаємо при завантаженні та зміні орієнтації)
+    function fixResize() {
+      const scene = document.querySelector('a-scene');
+      if (scene) {
+        scene.resize();
+      }
+      document.body.style.height = window.innerHeight + 'px';
+    }
+    window.addEventListener('load', fixResize);
+    window.addEventListener('resize', fixResize);
+    window.addEventListener('orientationchange', () => setTimeout(fixResize, 500));
   </script>
 </body>
 </html>
