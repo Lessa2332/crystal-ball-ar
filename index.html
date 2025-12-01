@@ -3,95 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Кришталева Куля Пророцтв AR</title>
+  <title>Кришталева Куля Пророцтв</title>
 
-  <!-- Точно той самий стек, що й у твоїй писанці — працює всюди -->
+  <!-- Критичні скрипти з CDN, які працюють на GitHub Pages -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin:0; overflow:hidden; background:#000; }
-    .arjs-loader {
-      height: 100%; width: 100%; position: absolute; top: 0; left: 0;
-      background: rgba(0,0,0,0.9); z-index: 9999;
+    body { margin:0; overflow:hidden; background:#000; font-family: 'Georgia', serif; }
+    .loader {
+      position: fixed; inset: 0; background: #000; color: #e0ccff;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      color: #e0ccff; font-size: 1.8em; text-align: center; font-family: Arial, sans-serif;
+      z-index: 9999; font-size: 2em; text-align: center;
     }
     #instruction {
       position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.7); color: #e0ccff; padding: 15px 25px;
-      border-radius: 20px; font-size: 1.2em; z-index: 100; pointer-events: none;
-      backdrop-filter: blur(5px);
+      background: linear-gradient(135deg, rgba(80,0,150,0.9), rgba(0,0,0,0.7));
+      color: #e0ccff; padding: 16px 32px; border-radius: 30px; font-size: 1.3em;
+      z-index: 100; pointer-events: none; backdrop-filter: blur(10px);
+      border: 1px solid rgba(138,43,226,0.5); box-shadow: 0 0 30px rgba(138,43,226,0.6);
     }
-    .hidden { display: none !important; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="arjs-loader" id="loader">
+  <div class="loader" id="loader">
     <div style="font-size:3em;margin-bottom:20px;">Кришталева Куля</div>
     <div>Наведи камеру на маркер</div>
   </div>
 
-  <div id="instruction" class="hidden">
-    Торкнись кулі — отримай пророцтво
-  </div>
+  <div id="instruction" class="hidden">Торкнись кулі — дізнайся свою долю</div>
 
   <a-scene
-    mindar-image="imageTargetSrc: marker.mind; showStats: false; uiLoading: no; uiScanning: no;"
     embedded
+    mindar-image="imageTargetSrc: marker.mind; uiLoading: no; uiScanning: no;"
+    color-space="sRGB"
+    renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
-    renderer="colorManagement: true; physicallyCorrectLights: true"
-    background="color: #000"
   >
     <a-assets>
       <audio id="bg" src="assets/sounds/fon.mp3" preload="auto" loop></audio>
       <audio id="magic" src="assets/sounds/fon1.mp3" preload="auto"></audio>
     </a-assets>
 
+    <!-- Камера -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+    <!-- Основна сцена -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <!-- Головна група -->
-      <a-entity id="crystal-group" position="0 0.1 0" rotation="-90 0 0">
+      <a-entity position="0 0.1 0" rotation="-90 0 0">
 
-        <!-- Кришталева куля (клікабельна) -->
+        <!-- Кришталева куля з рефракцією -->
         <a-sphere
           id="ball"
           radius="0.18"
-          segments-width="64"
-          segments-height="64"
-          material="shader: standard; metalness: 0.9; roughness: 0.1; envMapIntensity: 1.5; color: #88ccff; transparent: true; opacity: 0.7"
-          animation__glow="property: components.material.material.emissiveIntensity; from: 0; to: 0.8; dur: 2000; loop: true; dir: alternate"
+          material="color: #88ccff; transparent: true; opacity: 0.7; metalness: 0.8; roughness: 0.1; side: back"
           class="clickable"
+          animation="property: rotation; to: 0 360 0; dur: 20000; loop: true; easing: linear"
         ></a-sphere>
 
         <!-- Внутрішнє сяйво -->
-        <a-sphere radius="0.15" material="shader: flat; color: #4a00e0; transparent: true; opacity: 0.6; blending: additive"></a-sphere>
+        <a-sphere radius="0.15"
+          material="color: #9400ff; transparent: true; opacity: 0.7; blending: additive"
+          animation="property: material.opacity; from: 0.4; to: 1; dur: 3000; loop: true; dir: alternate"
+        ></a-sphere>
 
-        <!-- Аура-кільце -->
-        <a-ring radius-inner="0.2" radius-outer="0.35" rotation="-90 0 0"
-                material="shader: flat; color: #8a2be2; transparent: true; opacity: 0.4; side: double; blending: additive">
-          <a-animation attribute="scale" to="1.8 1.8 1.8" dur="400" begin="pulse"></a-animation>
-        </a-ring>
+        <!-- Аура -->
+        <a-ring id="aura" radius-inner="0.22" radius-outer="0.45" rotation="-90 0 0"
+          material="color: #8a2be2; transparent: true; opacity: 0.5; side: double; blending: additive"
+        ></a-ring>
 
         <!-- Підставка -->
-        <a-cylinder position="0 -0.04 0" radius="0.22" height="0.08"
-                    material="color: #1a1a1a; metalness: 0.9; roughness: 0.2"></a-cylinder>
+        <a-cylinder position="0 -0.04 0" radius="0.23" height="0.08"
+          material="color: #1a1a1a; metalness: 0.95; roughness: 0.2"
+        ></a-cylinder>
 
         <!-- Текст пророцтва -->
-        <a-plane id="prophecy" position="0 0.45 0" width="2.5" height="1"
-                 material="color: #00bfff; transparent: true; opacity: 0; shader: flat"
-                 text="value: ; align: center; width: 8; color: white; wrapCount: 30"></a-plane>
-
-        <!-- Частинки -->
-        <a-entity id="particles" position="0 0.18 0"></a-entity>
+        <a-plane id="text" position="0 0.5 0" width="3" height="1.2"
+          material="color: #00bfff; transparent: true; opacity: 0; shader: flat"
+          text="value: ; align: center; color: white; width: 10; wrapCount: 35"
+        ></a-plane>
       </a-entity>
     </a-entity>
   </a-scene>
 
   <script>
-    // Пророцтва
     const prophecies = [
       "Шлях до Успіху лежить через знання та Наполегливість",
       "Нові Можливості відкриються перед вами дуже скоро",
@@ -104,72 +101,46 @@
 
     let isActive = false;
     const ball = document.querySelector('#ball');
-    const prophecyText = document.querySelector('#prophecy');
-    const aura = document.querySelector('a-ring');
-    const particles = document.querySelector('#particles');
+    const aura = document.querySelector('#aura');
+    const text = document.querySelector('#text');
     const instruction = document.getElementById('instruction');
-    const bgSound = document.querySelector('#bg');
-    const magicSound = document.querySelector('#magic');
+    const bg = document.querySelector('#bg');
+    const magic = document.querySelector('#magic');
 
-    // Створення частинок
-    function createParticles() {
-      const count = 25;
-      const geometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(count * 3);
-      for (let i = 0; i < count * 3; i += 3) {
-        positions[i]     = (Math.random() - 0.5) * 0.2;
-        positions[i + 1] = (Math.random() - 0.5) * 0.2;
-        positions[i + 2] = (Math.random() - 0.5) * 0.2;
-      }
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const material = new THREE.PointsMaterial({ color: 0x8a2be2, size: 0.02, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
-      const points = new THREE.Points(geometry, material);
-      particles.object3D.add(points);
-    }
-    createParticles();
-
-    // Клік по кулі
     ball.addEventListener('click', () => {
       if (isActive) return;
       isActive = true;
       instruction.classList.add('hidden');
 
       const prophecy = prophecies[Math.floor(Math.random() * prophecies.length)];
+      text.setAttribute('text', 'value', prophecy);
+      text.setAttribute('material', 'opacity', 1);
 
-      // Звук
-      magicSound.currentTime = 0;
-      magicSound.play();
+      // Ефекти
+      aura.setAttribute('animation', 'property: scale; to: 2 2 2; dur: 600; easing: easeOutElastic');
+      setTimeout(() => aura.setAttribute('scale', '1 1 1'), 600);
 
-      // Анімація аури
-      aura.emit('pulse');
+      magic.currentTime = 0;
+      magic.play().catch(() => {});
 
-      // Текст
-      prophecyText.setAttribute('text', 'value', prophecy);
-      prophecyText.setAttribute('material', 'opacity', 1);
-
-      // Частинки
-      particles.object3D.children[0].material.opacity = 1;
-
-      // Повернення
       setTimeout(() => {
-        prophecyText.setAttribute('material', 'opacity', 0);
-        particles.object3D.children[0].material.opacity = 0;
+        text.setAttribute('material', 'opacity', 0);
         isActive = false;
         instruction.textContent = 'Торкніться знову для нового пророцтва';
         instruction.classList.remove('hidden');
       }, 7000);
     });
 
-    // Події маркера — точно як у писанці
-    const target = document.querySelector('[mindar-image-target]');
-    target.addEventListener('targetFound', () => {
-      document.getElementById('loader').style.display = 'none';
+    // Маркер знайдено
+    document.querySelector('a-entity[mindar-image-target]').addEventListener('targetFound', () => {
+      document.getElementById('loader').classList.add('hidden');
       instruction.classList.remove('hidden');
-      bgSound.play();
+      bg.play().catch(() => {});
     });
-    target.addEventListener('targetLost', () => {
+
+    document.querySelector('a-entity[mindar-image-target]').addEventListener('targetLost', () => {
       instruction.classList.add('hidden');
-      bgSound.pause();
+      bg.pause();
     });
   </script>
 </body>
