@@ -1,105 +1,490 @@
- <!-- ЗАМІНІТЬ цей розділ (всередині a-nft тегу) -->
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Куля Пророцтв - WebAR</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/aframe-particle-system-component@1.0.x/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-text-geometry-component@^0.5.1/dist/aframe-text-geometry-component.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .prophecy-display {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px 30px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 300px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+        }
+        
+        .prophecy-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+            margin-bottom: 10px;
+        }
+        
+        .timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            font-size: 48px;
+            color: #00ff00;
+            text-shadow: 0 0 15px #00ff00;
+            opacity: 0;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-top: 2px solid #00aaff;
+        }
+        
+        h1 {
+            color: #ffcc00;
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+        
+        p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+        
+        .highlight {
+            color: #00ffaa;
+            font-weight: bold;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 24px;
+        }
+        
+        .arjs-loader {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Завантажувальний екран -->
+    <div class="loading" id="loadingScreen">
+        <div style="text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 20px;">🔮</div>
+            <div>Завантаження Кулі Пророцтв...</div>
+            <div style="margin-top: 20px; font-size: 16px; color: #aaa;">Наведіть камеру на долоню</div>
+        </div>
+    </div>
 
-<a-entity id="prophecySphere" position="0 0.15 0" scale="0.08 0.08 0.08">
-    <!-- Основна куля -->
-    <a-sphere 
-        id="mainSphere"
-        radius="1" 
-        material="color: #4a00e0; transparent: true; opacity: 0.9; shader: flat; emissive: #8a2be2; emissiveIntensity: 0.3"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear"
+    <!-- Інформаційна панель -->
+    <div class="info-panel">
+        <h1>🔮 Куля Пророцтв</h1>
+        <p>Знайдіть свою долоню та торкніться кулі щоб отримати пророцтво!</p>
+        <p style="margin-top: 10px; color: #ffcc00;">
+            Пророцтва: <span id="prophecyCount">0</span>
+        </p>
+    </div>
+
+    <!-- Таймер -->
+    <div class="timer" id="timer">3</div>
+
+    <!-- Вікно пророцтва -->
+    <div class="prophecy-display" id="prophecyDisplay">
+        <div class="prophecy-text" id="prophecyText"></div>
+        <div style="color: #aaa; font-size: 16px;">✨ Доторкніться кулі знову ✨</div>
+    </div>
+
+    <!-- Інструкції -->
+    <div class="instructions">
+        <p>📱 <span class="highlight">Покажіть камері долоню</span> → 🖐️ <span class="highlight">Торкніться кулі</span> → 🔮 <span class="highlight">Отримайте пророцтво!</span></p>
+        <p style="margin-top: 8px; font-size: 14px; color: #ccc;">Підтримується на всіх сучасних смартфонах</p>
+    </div>
+
+    <!-- A-Frame AR сцена -->
+    <a-scene
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        renderer="logarithmicDepthBuffer: true;"
+        embedded
     >
-        <!-- Внутрішнє світіння -->
-        <a-sphere 
-            radius="0.8" 
-            material="color: #00ffaa; transparent: true; opacity: 0.3; shader: flat"
-        ></a-sphere>
-        
-        <!-- ТЕКСТИ ПРОРОЦТВ НА ЕКВАТОРІ КУЛІ -->
-        <!-- Кожен текст розміщений навколо кулі -->
-        <a-entity id="prophecyTexts">
-            <!-- Текст 1 -->
-            <a-entity 
-                position="0 0 1"
-                rotation="0 0 0"
-                text="value: ВСЕ БУДЕ ДОБРЕ; color: #FFD700; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.4 0.4 0.4"
-            ></a-entity>
-            
-            <!-- Текст 2 (90 градусів) -->
-            <a-entity 
-                position="1 0 0"
-                rotation="0 -90 0"
-                text="value: ТИ КЛАСНИЙ; color: #00FFAA; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.4 0.4 0.4"
-            ></a-entity>
-            
-            <!-- Текст 3 (180 градусів) -->
-            <a-entity 
-                position="0 0 -1"
-                rotation="0 180 0"
-                text="value: ВІЙНА ЗАКІНЧУЄТЬСЯ; color: #FF6B6B; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.4 0.4 0.4"
-            ></a-entity>
-            
-            <!-- Текст 4 (270 градусів) -->
-            <a-entity 
-                position="-1 0 0"
-                rotation="0 90 0"
-                text="value: УСПІХ ПОПЕРЕДУ; color: #9370DB; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.4 0.4 0.4"
-            ></a-entity>
-            
-            <!-- Додаткові тексти між основними -->
-            <!-- Текст 5 (45 градусів) -->
-            <a-entity 
-                position="0.7 0 0.7"
-                rotation="0 -45 0"
-                text="value: ЛЮБОВ ЗНАЙДЕ; color: #FF69B4; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.3 0.3 0.3"
-            ></a-entity>
-            
-            <!-- Текст 6 (135 градусів) -->
-            <a-entity 
-                position="0.7 0 -0.7"
-                rotation="0 -135 0"
-                text="value: МИР У ДУШІ; color: #00BFFF; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.3 0.3 0.3"
-            ></a-entity>
-            
-            <!-- Текст 7 (225 градусів) -->
-            <a-entity 
-                position="-0.7 0 -0.7"
-                rotation="0 135 0"
-                text="value: ЗДОРОВ'Я ЗМІЦНИТЬСЯ; color: #32CD32; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.3 0.3 0.3"
-            ></a-entity>
-            
-            <!-- Текст 8 (315 градусів) -->
-            <a-entity 
-                position="-0.7 0 0.7"
-                rotation="0 45 0"
-                text="value: МРІЇ ЗБУВАЮТЬСЯ; color: #FFA500; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
-                scale="0.3 0.3 0.3"
-            ></a-entity>
-        </a-entity>
-        
-        <!-- Анімація обертання текстів (в зворотний бік) -->
-        <a-animation 
-            attribute="rotation"
-            dur="20000"
-            to="0 -360 0"
-            repeat="indefinite"
-            easing="linear"
-        ></a-animation>
-    </a-sphere>
-    
-    <!-- Коло для торкання -->
-    <a-ring 
-        id="touchRing"
-        radius-inner="0.9"
-        radius-outer="1.1"
-        material="color: #ffcc00; transparent: true; opacity: 0.5"
-        rotation="-90 0 0"
-        animation="property: scale; from: 1 1 1; to: 1.5 1.5 1.5; dur: 1500; loop: true; easing: easeInOutSine; dir: alternate"
-    ></a-ring>
-</a-entity>
+
+        <!-- Маркер для долоні -->
+        <a-nft
+            type="nft"
+            url="https://raw.githack.com/AR-js-org/AR.js/master/data/dataNFT/pinball"
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance=".01"
+            smoothThreshold="5"
+        >
+            <!-- Куля пророцтв з текстами навколо -->
+            <a-entity id="prophecySphere" position="0 0.15 0" scale="0.08 0.08 0.08">
+                <!-- Основна куля -->
+                <a-sphere 
+                    id="mainSphere"
+                    radius="1" 
+                    material="color: #4a00e0; transparent: true; opacity: 0.7; side: double; emissive: #8a2be2; emissiveIntensity: 0.5"
+                    animation="property: rotation; to: 0 360 0; loop: true; dur: 20000; easing: linear"
+                >
+                    <!-- Внутрішнє світіння -->
+                    <a-sphere 
+                        radius="0.85" 
+                        material="color: #00ffaa; transparent: true; opacity: 0.2; shader: flat"
+                    ></a-sphere>
+                    
+                    <!-- Частинки всередині -->
+                    <a-entity 
+                        particle-system="preset: snow; color: #9370DB, #8A2BE2, #4B0082; particleCount: 150; size: 0.03"
+                        position="0 0 0"
+                    ></a-entity>
+                    
+                    <!-- Анімація пульсації -->
+                    <a-animation 
+                        attribute="scale"
+                        dur="3000"
+                        from="1 1 1"
+                        to="1.05 1.05 1.05"
+                        direction="alternate"
+                        repeat="indefinite"
+                        easing="easeInOutSine"
+                    ></a-animation>
+                </a-sphere>
+                
+                <!-- КОЛЬЦО З ТЕКСТАМИ ПРОРОЦТВ НА ЕКВАТОРІ -->
+                <a-entity 
+                    id="prophecyRing"
+                    position="0 0 0"
+                    animation="property: rotation; to: 0 -360 0; loop: true; dur: 40000; easing: linear"
+                >
+                    <!-- Тексти пророцтв по колу (екватор кулі) -->
+                    <a-entity 
+                        position="0 0 1.3"
+                        rotation="0 0 0"
+                        text="value: ВСЕ БУДЕ ДОБРЕ; color: #FFD700; align: center; width: 2.5; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="0.92 0 0.92"
+                        rotation="0 -45 0"
+                        text="value: ТИ КЛАСНИЙ; color: #00FFAA; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="1.3 0 0"
+                        rotation="0 -90 0"
+                        text="value: ВІЙНА ЗАКІНЧУЄТЬСЯ; color: #FF6B6B; align: center; width: 2.5; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="0.92 0 -0.92"
+                        rotation="0 -135 0"
+                        text="value: УСПІХ ПОПЕРЕДУ; color: #9370DB; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="0 0 -1.3"
+                        rotation="0 180 0"
+                        text="value: ЛЮБОВ ЗНАЙДЕ; color: #FF69B4; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="-0.92 0 -0.92"
+                        rotation="0 135 0"
+                        text="value: МИР У ДУШІ; color: #00BFFF; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="-1.3 0 0"
+                        rotation="0 90 0"
+                        text="value: ЗДОРОВ'Я ЗМІЦНИТЬСЯ; color: #32CD32; align: center; width: 2.5; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                    
+                    <a-entity 
+                        position="-0.92 0 0.92"
+                        rotation="0 45 0"
+                        text="value: МРІЇ ЗБУВАЮТЬСЯ; color: #FFA500; align: center; width: 2; font: https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+                        scale="0.25 0.25 0.25"
+                    ></a-entity>
+                </a-entity>
+                
+                <!-- Частинки навколо текстів -->
+                <a-entity 
+                    particle-system="preset: default; color: #FFFFFF, #FFD700, #00FFFF; particleCount: 100; size: 0.02; velocityValue: 0.5 0.5 0.5"
+                    position="0 0 0"
+                ></a-entity>
+                
+                <!-- Коло для торкання -->
+                <a-ring 
+                    id="touchRing"
+                    radius-inner="1.4"
+                    radius-outer="1.6"
+                    material="color: #ffcc00; transparent: true; opacity: 0.4; side: double"
+                    rotation="-90 0 0"
+                    animation="property: scale; from: 1 1 1; to: 1.3 1.3 1.3; dur: 2000; loop: true; easing: easeInOutSine; dir: alternate"
+                ></a-ring>
+                
+                <!-- Додаткове світіння -->
+                <a-light 
+                    type="point" 
+                    color="#8a2be2" 
+                    intensity="0.8" 
+                    distance="5"
+                    position="0 0.5 0"
+                ></a-light>
+            </a-entity>
+        </a-nft>
+
+        <!-- Освітлення -->
+        <a-entity light="type: ambient; color: #444; intensity: 0.6"></a-entity>
+        <a-entity light="type: directional; color: #ffffff; intensity: 0.8" position="-1 2 1"></a-entity>
+        <a-entity light="type: point; color: #00aaff; intensity: 1; distance: 10" position="0 2 0"></a-entity>
+
+        <!-- Камера -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Список пророцтв
+            const prophecies = [
+                "Все буде добре! ✨",
+                "Ти класний! 🌟",
+                "Війна закінчується! 🕊️",
+                "Успіх чекає попереду! 🚀",
+                "Любов знайде тебе! 💖",
+                "Гроші йдуть до тебе! 💰",
+                "Здоров'я зміцнюється! 🌿",
+                "Сім'я поруч! 👨‍👩‍👧‍👦",
+                "Друзі підтримують! 🤝",
+                "Мрії збуваються! 🌈",
+                "Нові можливості відкриваються! 🚪",
+                "Енергія повертається! ⚡",
+                "Радість наповнює серце! 😊",
+                "Мир у душі! ☮️",
+                "Сила духу зростає! 🦸"
+            ];
+
+            // Елементи DOM
+            const sphere = document.querySelector('#mainSphere');
+            const touchRing = document.querySelector('#touchRing');
+            const prophecyRing = document.querySelector('#prophecyRing');
+            const prophecyDisplay = document.getElementById('prophecyDisplay');
+            const prophecyText = document.getElementById('prophecyText');
+            const timerElement = document.getElementById('timer');
+            const loadingScreen = document.getElementById('loadingScreen');
+            const prophecyCountElement = document.getElementById('prophecyCount');
+
+            // Змінні стану
+            let isCounting = false;
+            let prophecyCount = 0;
+            let countdown = 3;
+
+            // Приховуємо завантажувальний екран через 2 секунди
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }, 2000);
+
+            // Функція отримання випадкового пророцтва
+            function getRandomProphecy() {
+                return prophecies[Math.floor(Math.random() * prophecies.length)];
+            }
+
+            // Функція запуску таймера
+            function startCountdown() {
+                if (isCounting) return;
+                
+                isCounting = true;
+                countdown = 3;
+                timerElement.style.opacity = '1';
+                timerElement.textContent = countdown;
+                
+                // Анімації при активації
+                sphere.setAttribute('animation', 'property: rotation; to: 0 1080 0; loop: false; dur: 3000; easing: easeInOutCubic');
+                sphere.setAttribute('material', 'color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 1.5');
+                touchRing.setAttribute('material', 'color: #00ffff; opacity: 0.8');
+                prophecyRing.setAttribute('animation', 'dur: 10000; easing: easeInOutCubic');
+                
+                // Прискорення обертання тексту
+                prophecyRing.setAttribute('animation__2', 'property: rotation; to: 0 -720 0; loop: false; dur: 3000; easing: linear');
+                
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    timerElement.textContent = countdown;
+                    
+                    // Пульсація таймера
+                    timerElement.style.transform = `scale(${1 + (3-countdown)*0.3})`;
+                    setTimeout(() => {
+                        timerElement.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    // Зміна кольору кулі під час відліку
+                    const colors = ['#ff0000', '#ff9900', '#ffff00'];
+                    sphere.setAttribute('material', `color: ${colors[countdown] || '#ff00ff'}; emissive: ${colors[countdown] || '#ff00ff'}`);
+                    
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        showProphecy();
+                    }
+                }, 1000);
+            }
+
+            // Функція показу пророцтва
+            function showProphecy() {
+                const prophecy = getRandomProphecy();
+                prophecyText.textContent = prophecy;
+                
+                // Анімація появи пророцтва
+                prophecyDisplay.style.opacity = '1';
+                prophecyDisplay.style.transform = 'translateX(-50%) scale(1.1)';
+                
+                // Ефект світіння кулі
+                sphere.setAttribute('material', 'color: #00ffaa; emissive: #00ffaa; emissiveIntensity: 3');
+                touchRing.setAttribute('material', 'color: #ffcc00; opacity: 0.6');
+                
+                // Вибух частинок
+                const explosion = document.createElement('a-entity');
+                explosion.setAttribute('particle-system', 'preset: explosion; color: #FFD700, #FFA500, #FF4500; particleCount: 300; size: 0.15');
+                explosion.setAttribute('position', '0 0 0');
+                explosion.id = 'explosionParticles';
+                sphere.appendChild(explosion);
+                
+                // Звуковий ефект (вібро)
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                
+                // Оновлення лічильника
+                prophecyCount++;
+                prophecyCountElement.textContent = prophecyCount;
+                
+                // Таймер зникає
+                setTimeout(() => {
+                    timerElement.style.opacity = '0';
+                }, 500);
+                
+                // Ефект сповільнення тексту після пророцтва
+                prophecyRing.setAttribute('animation', 'property: rotation; to: 0 -360 0; loop: true; dur: 60000; easing: linear');
+                
+                // Скидання через 6 секунд
+                setTimeout(() => {
+                    resetSphere();
+                    prophecyDisplay.style.opacity = '0';
+                    prophecyDisplay.style.transform = 'translateX(-50%) scale(1)';
+                    
+                    // Видалення частинок вибуху
+                    const explosionEl = document.getElementById('explosionParticles');
+                    if (explosionEl) explosionEl.parentNode.removeChild(explosionEl);
+                }, 6000);
+            }
+
+            // Функція скидання кулі
+            function resetSphere() {
+                isCounting = false;
+                sphere.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 20000; easing: linear');
+                sphere.setAttribute('material', 'color: #4a00e0; transparent: true; opacity: 0.7; emissive: #8a2be2; emissiveIntensity: 0.5');
+                touchRing.setAttribute('material', 'color: #ffcc00; opacity: 0.4');
+                prophecyRing.setAttribute('animation', 'property: rotation; to: 0 -360 0; loop: true; dur: 40000; easing: linear');
+                
+                // Видаляємо додаткову анімацію
+                prophecyRing.removeAttribute('animation__2');
+                
+                // Повернення пульсації
+                sphere.setAttribute('animation__2', 'attribute: scale; dur: 3000; from: 1 1 1; to: 1.05 1.05 1.05; direction: alternate; repeat: indefinite; easing: easeInOutSine');
+            }
+
+            // Обробник торкання кулі
+            sphere.addEventListener('click', function() {
+                if (!isCounting) {
+                    startCountdown();
+                }
+            });
+
+            // Також реагуємо на торкання кільця
+            touchRing.addEventListener('click', function() {
+                if (!isCounting) {
+                    startCountdown();
+                }
+            });
+
+            // Для мобільних пристроїв
+            sphere.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                if (!isCounting) {
+                    startCountdown();
+                }
+            });
+
+            // Автоматичне приховування інструкцій через 8 секунд
+            setTimeout(() => {
+                document.querySelector('.instructions').style.opacity = '0.6';
+            }, 8000);
+
+            // Інформація про завантаження
+            console.log("🔮 Куля Пророцтв WebAR завантажена!");
+            console.log("Тексти пророцтв обертаються навколо кулі!");
+        });
+    </script>
+</body>
+</html>
