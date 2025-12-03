@@ -2,908 +2,418 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>🔮 Куля Пророцтв - AR задньою камерою</title>
-    
-    <!-- MediaPipe -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>❄️ Снігова Куля Пророцтв</title>
+   
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    
-    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <!-- Український шрифт з Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap&subset=cyrillic,cyrillic-ext" rel="stylesheet">
-    
+   
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Roboto', 'Arial Unicode MS', Arial, sans-serif;
-            background: #000;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a2e5c 0%, #1a4b8c 50%, #2c3e50 100%);
             color: white;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            touch-action: none;
+            height: 100vh; width: 100vw; overflow: hidden;
+            touch-action: none; user-select: none;
         }
-        
         #cameraView {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: none;
-            z-index: 1;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; transform: scaleX(-1); z-index: 1; opacity: 0.35;
         }
-        
         #canvas3d {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2; pointer-events: none;
         }
-        
         .info-panel {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 12px 15px;
-            border-radius: 12px;
-            border: 2px solid #4a00e0;
-            max-width: 260px;
-            backdrop-filter: blur(8px);
+            position: absolute; top: 15px; left: 15px; z-index: 1000;
+            background: rgba(255,255,255,0.15); padding: 12px; border-radius: 15px;
+            border: 2px solid rgba(173,216,230,0.5); max-width: 280px;
+            backdrop-filter: blur(15px);
         }
-        
         .timer {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 1000;
-            font-size: 48px;
-            color: #00ff00;
-            text-shadow: 0 0 15px #00ff00;
-            opacity: 0;
-            font-weight: bold;
-            transition: all 0.3s;
+            position: absolute; top: 15px; right: 15px; z-index: 1000;
+            font-size: 56px; color: #4fc3f7; text-shadow: 0 0 20px #4fc3f7;
+            opacity: 0; font-weight: bold;
         }
-        
-        .instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 14px;
-            border-top: 2px solid #00aaff;
-            font-size: 15px;
-            backdrop-filter: blur(5px);
-        }
-        
         .hand-guide {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 3;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 25px;
-            border-radius: 18px;
-            border: 2px solid #00ffaa;
-            min-width: 280px;
-            transition: opacity 0.5s;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            z-index: 3; text-align: center; background: rgba(255,255,255,0.95);
+            padding: 25px; border-radius: 20px; border: 3px solid #4fc3f7;
+            color: #1565c0; min-width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        
         .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            transition: opacity 0.5s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0a2e5c 0%, #1a4b8c 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; font-size: 28px; color: white;
         }
-        
-        .progress-ring {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 120px;
-            height: 120px;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
+        .instructions {
+            position: absolute; bottom: 20px; left: 0; right: 0;
+            text-align: center; z-index: 1000; background: rgba(0,30,60,0.8);
+            padding: 15px; border-top: 3px solid #4fc3f7; font-size: 16px;
+            backdrop-filter: blur(10px);
         }
-        
-        .progress-circle {
-            fill: transparent;
-            stroke: #00ffff;
-            stroke-width: 6;
-            stroke-dasharray: 314;
-            stroke-dashoffset: 314;
-            transition: stroke-dashoffset 0.1s;
-        }
-        
-        .test-button {
-            position: absolute;
-            bottom: 100px;
-            right: 15px;
-            z-index: 1000;
-            background: linear-gradient(45deg, #ff00ff, #00ffff);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 14px;
-            cursor: pointer;
-            display: none;
-            font-weight: bold;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(138, 43, 226, 0.3);
-            border-radius: 50%;
-            border-top-color: #8a2be2;
-            animation: spin 1s ease-in-out infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* ПРОРОЦТВО ТЕКСТ (для анімації збільшення) */
-        .prophecy-text-3d {
-            position: absolute;
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-            opacity: 0;
-            transition: all 0.5s ease-in-out;
-            pointer-events: none;
-            text-align: center;
-            width: 300px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
     </style>
 </head>
 <body>
-    <!-- ЗАВАНТАЖЕННЯ -->
     <div class="loading" id="loadingScreen">
-        <div style="text-align: center; padding: 30px;">
-            <div class="spinner"></div>
-            <div style="font-size: 20px; margin-bottom: 10px; color: #8a2be2;">🔮 Куля Пророцтв</div>
-            <div style="color: #aaa; font-size: 16px;">Запуск задньої камери...</div>
+        <div style="text-align:center">
+            <div style="font-size:70px;margin-bottom:20px;">❄️</div>
+            <div style="font-size:28px;">Снігова Куля Пророцтв</div>
+            <div style="color:#b3e5fc;margin-top:10px;">Завантаження...</div>
         </div>
     </div>
 
-    <!-- ГАЙД -->
     <div class="hand-guide" id="handGuide">
-        <div style="font-size: 60px; margin-bottom: 15px; color: #00ffaa;">👆</div>
-        <div style="font-size: 20px; margin-bottom: 10px; color: #00ffaa;">
-            Покажіть долоню <span style="color: #ffcc00;">ЗАДНЬОЇ</span> камери
-        </div>
-        <div style="color: #ccc; font-size: 15px;">Торкніться кулі на 3 секунди</div>
+        <div style="font-size:70px;margin-bottom:15px;">Palm</div>
+        <div style="font-size:22px;color:#1565c0;">Покажіть долоню камері</div>
+        <div style="color:#546e7a;">Торкніться кулі на 3 секунди</div>
     </div>
 
-    <!-- ПРОГРЕС ТОРКАННЯ -->
-    <div class="progress-ring" id="touchProgress">
-        <svg width="120" height="120">
-            <circle class="progress-circle" cx="60" cy="60" r="50"></circle>
-        </svg>
-    </div>
-
-    <!-- ІНФОПАНЕЛЬ -->
     <div class="info-panel">
-        <div style="color: #ffcc00; margin-bottom: 8px; font-size: 20px; display: flex; align-items: center; gap: 8px;">
-            <span>🔮</span>
-            <span>Куля Пророцтв</span>
-        </div>
-        <div style="font-size: 15px; color: #aaa;">Пророцтва: <span id="prophecyCount" style="color: #00ffaa; font-weight: bold;">0</span></div>
+        <h1 style="color:#4fc3f7;font-size:22px;">❄️ СНІГОВА КУЛЯ</h1>
+        <p style="font-size:16px;color:#e3f2fd;">Торкніться снігової кулі пальцем</p>
+        <p style="margin-top:10px;color:#4fc3f7;font-size:18px;">
+            Пророцтва: <span id="prophecyCount">0</span>
+        </p>
     </div>
 
-    <!-- ТАЙМЕР -->
     <div class="timer" id="timer">3</div>
 
-    <!-- ІНСТРУКЦІЇ -->
     <div class="instructions">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <span>👆</span>
-            <span>Торкніться кулі на <span style="color: #00ffaa; font-weight: bold;">3 секунди</span></span>
-        </div>
+        ❄️ Снігова магія • Палець Торкніться на 3 секунди • Різдвяне пророцтво
     </div>
 
-    <!-- КНОПКА ТЕСТУ -->
-    <button class="test-button" id="testButton" onclick="startCountdown()">Тест: Запустити</button>
-
-    <!-- ВІДЕО ТА 3D -->
-    <video id="cameraView" autoplay playsinline muted></video>
+    <video id="cameraView" autoplay playsinline></video>
     <canvas id="canvas3d"></canvas>
 
     <script>
-        // ========== КОНФІГУРАЦІЯ ==========
         const CONFIG = {
             COUNTDOWN_TIME: 3,
-            SPHERE_RADIUS: 0.05, // 10см в реальному світі
-            TOUCH_DISTANCE: 0.12,
-            SPHERE_DISTANCE: -0.35,
-            TOUCH_HOLD_TIME: 3000,
-            TEXT_SCALE_MULTIPLIER: 3, // Збільшення тексту у 3 рази
-            TEXT_SHOW_TIME: 3000 // Час показу великого тексту
+            PROPHECY_TIME: 5.5,
+            SPHERE_RADIUS: 0.25,
+            TOUCH_DISTANCE: 0.42,
+            TEXT_SCALE_MULTIPLIER: 3.2
         };
 
-        // ========== ПРОРОЦТВА УКРАЇНСЬКОЮ ==========
         const PROPHECIES = [
-            "ВСЕ БУДЕ ДОБРЕ",
-            "ТИ НАЙКРАЩИЙ",
-            "МИР ПЕРЕМОЖЕ", 
-            "УСПІХ ПОПЕРЕДУ",
-            "ЛЮБОВ ЗНАЙДЕ",
-            "ЩАСТЯ ПОВНИТЬ",
-            "ЗДОРОВ'Я ЗРОСТЕ",
-            "МРІЇ ЗБУДУТЬСЯ"
+            "Мир у вашому домі! ❄️","Радість у серці! ✨","Любов завжди поряд! 💙",
+            "Здоров'я міцніє! 🌟","Щастя приходить! 🎄","Мрії збуваються! 🌌",
+            "Успіх чекає! 🚀","Світло перемагає! 💫","Добро повертається! ❤️",
+            "Надія завжди з вами! 🌠","Тепло взимку! 🔥","Чарівність Різдва! 🎁"
         ];
 
-        // ========== ГЛОБАЛЬНІ ЗМІННІ ==========
-        let scene, camera, renderer, sphere, ring;
-        let hands = null;
-        let cameraStream = null;
-        let isCounting = false;
-        let prophecyCount = 0;
-        let currentCountdown = CONFIG.COUNTDOWN_TIME;
-        let spherePosition = { x: 0, y: 0, z: CONFIG.SPHERE_DISTANCE };
-        let handDetected = false;
-        let touchStartTime = 0;
-        let isTouching = false;
-        let touchHoldTimer = null;
-        let usingBackCamera = true;
-        
-        // Масив 3D текстів
-        let textMeshes = [];
-        let activeProphecyMesh = null;
-        let prophecyAnimation = {
-            isActive: false,
-            targetText: null,
-            startTime: 0,
-            originalScale: null,
-            originalPosition: null,
-            originalRotation: null
-        };
+        let scene, camera, renderer, sphere, prophecyTextMesh, prophecyTextGroup;
+        let hands, video;
+        let isTouching = false, isCounting = false, prophecyActive = false;
+        let touchStartTime = 0, prophecyCount = 0;
+        let spherePos = new THREE.Vector3(0, 0, -1.5);
 
-        // ========== DOM ЕЛЕМЕНТИ ==========
         const elements = {
             loading: document.getElementById('loadingScreen'),
             handGuide: document.getElementById('handGuide'),
             timer: document.getElementById('timer'),
             prophecyCount: document.getElementById('prophecyCount'),
             cameraView: document.getElementById('cameraView'),
-            canvas3d: document.getElementById('canvas3d'),
-            touchProgress: document.getElementById('touchProgress'),
-            progressCircle: document.querySelector('.progress-circle'),
-            testButton: document.getElementById('testButton')
+            canvas3d: document.getElementById('canvas3d')
         };
 
-        // ========== ЗАПУСК ЗАДНЬОЇ КАМЕРИ ==========
-        async function startBackCamera() {
-            const constraints = {
-                video: {
-                    facingMode: { exact: 'environment' },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: false
-            };
-            
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-                elements.cameraView.srcObject = cameraStream;
-                
-                const track = cameraStream.getVideoTracks()[0];
-                const settings = track.getSettings();
-                
-                usingBackCamera = settings.facingMode === 'environment';
-                
-                await new Promise((resolve) => {
-                    if (elements.cameraView.readyState >= 3) {
-                        resolve();
-                    } else {
-                        elements.cameraView.onloadedmetadata = () => resolve();
-                    }
-                });
-                
-                return true;
-                
-            } catch (error) {
-                console.warn('Задня камера недоступна:', error);
-                
-                try {
-                    const fallbackConstraints = { video: true, audio: false };
-                    cameraStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-                    elements.cameraView.srcObject = cameraStream;
-                    
-                    await new Promise((resolve) => {
-                        elements.cameraView.onloadedmetadata = () => resolve();
-                    });
-                    
-                    usingBackCamera = false;
-                    return true;
-                    
-                } catch (fallbackError) {
-                    console.error('Камера недоступна:', fallbackError);
-                    return false;
-                }
-            }
-        }
-
-        // ========== ІНІЦІАЛІЗАЦІЯ THREE.JS ==========
         function initThreeJS() {
             scene = new THREE.Scene();
-            scene.background = null;
-            
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 10);
-            camera.position.set(0, 0, 0.8);
-            camera.lookAt(0, 0, 0);
-            
-            renderer = new THREE.WebGLRenderer({ 
-                canvas: elements.canvas3d,
-                alpha: true,
-                antialias: true,
-                powerPreference: "high-performance"
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            
-            // Освітлення
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.9);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(2, 3, 4);
-            scene.add(directionalLight);
-            
-            const pointLight = new THREE.PointLight(0x8a2be2, 1.5, 6);
-            pointLight.position.set(0, 1.5, 0);
-            scene.add(pointLight);
-            
-            // Створення кулі
-            createMagicSphere();
-            
-            // Запуск анімації
+            scene.fog = new THREE.FogExp2(0x0a2e5c, 0.05);
+
+            camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+            camera.position.z = 5;
+
+            renderer = new THREE.WebGLRenderer({ canvas: elements.canvas3d, alpha: true, antialias: devicePixelRatio < 2 });
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+
+            const ambient = new THREE.AmbientLight(0xb3e5fc, 0.8);
+            scene.add(ambient);
+            const point = new THREE.PointLight(0x4fc3f7, 2, 20);
+            point.position.set(0, 3, 2);
+            scene.add(point);
+
+            createSphere();
+            createProphecyText();
+
+            // Сніжинки на фоні (легкі)
+            createBackgroundSnow();
+
             animate();
-            
-            // Симуляція завантаження
+
             setTimeout(() => {
                 elements.loading.style.opacity = '0';
-                setTimeout(() => {
-                    elements.loading.style.display = 'none';
-                }, 500);
-            }, 1500);
+                setTimeout(() => elements.loading.style.display = 'none', 600);
+            }, 1200);
         }
 
-        // ========== СТВОРЕННЯ КУЛІ ==========
-        function createMagicSphere() {
-            // ОСНОВНА КУЛЯ
-            const sphereGeometry = new THREE.SphereGeometry(CONFIG.SPHERE_RADIUS, 64, 64);
-            const sphereMaterial = new THREE.MeshPhongMaterial({
-                color: 0x4a00e0,
-                transparent: true,
-                opacity: 0.9,
-                emissive: 0x8a2be2,
-                emissiveIntensity: 0.7,
-                shininess: 120,
-                side: THREE.DoubleSide
+        function createSphere() {
+            const geo = new THREE.SphereGeometry(CONFIG.SPHERE_RADIUS, 48, 48);
+            const mat = new THREE.MeshPhongMaterial({
+                color: 0xe3f2fd, transparent: true, opacity: 0.96,
+                emissive: 0x4fc3f7, emissiveIntensity: 0.7, shininess: 100
             });
-            
-            sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.position.z = CONFIG.SPHERE_DISTANCE;
+            sphere = new THREE.Mesh(geo, mat);
             scene.add(sphere);
-            
-            // КІЛЬЦЕ ДЛЯ ТОРКАННЯ
-            const ringGeometry = new THREE.RingGeometry(
-                CONFIG.SPHERE_RADIUS * 1.25,
-                CONFIG.SPHERE_RADIUS * 1.45,
-                48
+
+            // Кільце підсвітки
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(CONFIG.SPHERE_RADIUS*1.3, CONFIG.SPHERE_RADIUS*1.5, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
             );
-            const ringMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffcc00,
-                transparent: true,
-                opacity: 0.65,
-                side: THREE.DoubleSide
-            });
-            
-            ring = new THREE.Mesh(ringGeometry, ringMaterial);
-            ring.rotation.x = -Math.PI / 2;
-            ring.position.y = 0.001;
+            ring.rotation.x = -Math.PI/2;
             sphere.add(ring);
-            
-            // ТЕКСТИ ПРОРОЦТВ, ЩО ОБЕРТАЮТЬСЯ З КУЛЕЮ
-            createRotatingTexts();
-        }
+            sphere.userData.ring = ring;
 
-        // ========== ТЕКСТИ, ЩО ОБЕРТАЮТЬСЯ З КУЛЕЮ ==========
-        function createRotatingTexts() {
-            const colors = [
-                0xFFD700, 0x00FFAA, 0xFF6B6B, 0x9370DB,
-                0xFF69B4, 0x00BFFF, 0x32CD32, 0xFFA500
-            ];
-            
-            const radius = CONFIG.SPHERE_RADIUS * 2.5;
-            textMeshes = [];
-            
-            for (let i = 0; i < PROPHECIES.length; i++) {
-                const textMesh = createTextMesh(PROPHECIES[i], colors[i]);
-                
-                // Початкова позиція по колу
-                const angle = (i / PROPHECIES.length) * Math.PI * 2;
-                textMesh.position.x = Math.sin(angle) * radius;
-                textMesh.position.z = Math.cos(angle) * radius;
-                textMesh.position.y = 0;
-                
-                // Зберігаємо початкові значення
-                textMesh.userData = {
-                    originalPosition: textMesh.position.clone(),
-                    originalScale: textMesh.scale.clone(),
-                    originalRotation: textMesh.rotation.clone(),
-                    radius: radius,
-                    angle: angle,
-                    isProphecy: false,
-                    prophecyIndex: i
-                };
-                
-                scene.add(textMesh);
-                textMeshes.push(textMesh);
+            // Внутрішні сніжинки
+            const snowGeo = new THREE.BufferGeometry();
+            const count = 80;
+            const pos = new Float32Array(count*3);
+            for(let i=0; i<count*3; i+=3){
+                const r = CONFIG.SPHERE_RADIUS*0.7;
+                const theta = Math.random()*Math.PI*2;
+                const phi = Math.acos(2*Math.random()-1);
+                pos[i]   = r*Math.sin(phi)*Math.cos(theta);
+                pos[i+1] = r*Math.sin(phi)*Math.sin(theta);
+                pos[i+2] = r*Math.cos(phi);
             }
+            snowGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+            const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({color:0xffffff,size:0.025,transparent:true,opacity:0.9}));
+            sphere.add(snow);
+            sphere.userData.snow = snow;
+            sphere.userData.origPos = pos.slice();
         }
 
-        // ========== СТВОРЕННЯ 3D ТЕКСТУ ==========
-        function createTextMesh(text, color) {
+        function createProphecyText() {
+            prophecyTextGroup = new THREE.Group();
+            scene.add(prophecyTextGroup);
+
+            const geo = new THREE.PlaneGeometry(3, 0.8);
+            const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
+            prophecyTextMesh = new THREE.Mesh(geo, mat);
+            prophecyTextGroup.add(prophecyTextMesh);
+            prophecyTextGroup.visible = false;
+        }
+
+        function updateProphecyText(text) {
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Більший розмір для якісного тексту
             canvas.width = 1024;
             canvas.height = 256;
-            
-            // Прозорий фон
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // УКРАЇНСЬКИЙ ШРИФТ
-            ctx.font = 'bold 90px "Roboto", "Arial Unicode MS", Arial, sans-serif';
+            const ctx = canvas.getContext('2d');
+
+            // Градієнтний фон
+            const grad = ctx.createLinearGradient(0,0,0,canvas.height);
+            grad.addColorStop(0, 'rgba(255,255,255,0.98)');
+            grad.addColorStop(1, 'rgba(220,240,255,0.95)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            // Текст
+            ctx.font = 'bold 140px Arial, Helvetica, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
-            // Обводка для читабельності
-            ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-            ctx.lineWidth = 20;
-            ctx.lineJoin = 'round';
+
+            // Обводка
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 12;
             ctx.strokeText(text, canvas.width/2, canvas.height/2);
-            
-            // Заповнення
-            const r = (color >> 16) & 255;
-            const g = (color >> 8) & 255;
-            const b = color & 255;
-            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+
+            // Основний колір
+            ctx.fillStyle = '#1565c0';
             ctx.fillText(text, canvas.width/2, canvas.height/2);
-            
-            // Текстура
+
+            // Блиск
+            ctx.fillStyle = '#4fc3f7';
+            ctx.globalAlpha = 0.5;
+            ctx.fillText(text, canvas.width/2 - 6, canvas.height/2 - 6);
+
             const texture = new THREE.CanvasTexture(canvas);
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = texture.magFilter = THREE.LinearFilter;
+
+            prophecyTextMesh.material.map = texture;
+            prophecyTextMesh.material.opacity = 1;
+            prophecyTextMesh.material.needsUpdate = true;
             texture.needsUpdate = true;
-            
-            // Площина для тексту
-            const planeGeometry = new THREE.PlaneGeometry(0.25, 0.0625);
-            const planeMaterial = new THREE.MeshBasicMaterial({
-                map: texture,
-                transparent: true,
-                opacity: 0.95,
-                side: THREE.DoubleSide,
-                depthTest: true
+
+            prophecyTextGroup.visible = true;
+        }
+
+        function createBackgroundSnow() {
+            for(let i=0; i<60; i++){
+                const s = document.createElement('div');
+                s.innerHTML = '❄️';
+                s.style.position = 'fixed';
+                s.style.left = Math.random()*100+'vw';
+                s.style.top = '-50px';
+                s.style.fontSize = (15+Math.random()*20)+'px';
+                s.style.opacity = 0.4+Math.random()*0.4;
+                s.style.pointerEvents = 'none';
+                s.style.animation = `fall ${8+Math.random()*12}s linear infinite`;
+                s.style.animationDelay = Math.random()*10+'s';
+                document.body.appendChild(s);
+            }
+            const style = document.createElement('style');
+            style.textContent = `@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}`;
+            document.head.appendChild(style);
+        }
+
+        function initHands() {
+            hands = new Hands({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+            hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7});
+            hands.onResults(onResults);
+
+            const cam = new Camera(elements.cameraView, {
+                onFrame: async () => await hands.send({image: elements.cameraView}),
+                width: 640, height: 480
             });
-            
-            const textMesh = new THREE.Mesh(planeGeometry, planeMaterial);
-            return textMesh;
-        }
-
-        // ========== АНІМАЦІЯ ТЕКСТУ ==========
-        function startTextAnimation(textMesh) {
-            prophecyAnimation = {
-                isActive: true,
-                targetText: textMesh,
-                startTime: Date.now(),
-                originalScale: textMesh.scale.clone(),
-                originalPosition: textMesh.position.clone(),
-                originalRotation: textMesh.rotation.clone()
-            };
-            
-            // Зупиняємо обертання кулі
-            sphere.userData.fastRotation = false;
-            sphere.userData.pauseRotation = true;
-            
-            // Знаходимо текст, що дивиться найкраще на камеру
-            const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-            
-            // Повертаємо текст до камери
-            textMesh.lookAt(camera.position);
-            
-            // Позиціонуємо перед камерою
-            const targetPosition = camera.position.clone();
-            targetPosition.z -= 0.5; // Трохи ближче до камери
-            targetPosition.y += 0.1; // Трохи вище
-            
-            // Анімація переміщення
-            textMesh.userData.animateToPosition = targetPosition;
-            textMesh.userData.animateToScale = new THREE.Vector3(
-                CONFIG.TEXT_SCALE_MULTIPLIER,
-                CONFIG.TEXT_SCALE_MULTIPLIER,
-                CONFIG.TEXT_SCALE_MULTIPLIER
-            );
-            
-            activeProphecyMesh = textMesh;
-        }
-
-        function updateTextAnimation() {
-            if (!prophecyAnimation.isActive || !activeProphecyMesh) return;
-            
-            const elapsed = Date.now() - prophecyAnimation.startTime;
-            const progress = Math.min(elapsed / 500, 1); // 0.5 секунди на анімацію
-            
-            // Анімація переміщення
-            if (activeProphecyMesh.userData.animateToPosition) {
-                activeProphecyMesh.position.lerp(
-                    activeProphecyMesh.userData.animateToPosition,
-                    progress
-                );
-            }
-            
-            // Анімація масштабу
-            if (activeProphecyMesh.userData.animateToScale) {
-                activeProphecyMesh.scale.lerp(
-                    activeProphecyMesh.userData.animateToScale,
-                    progress
-                );
-            }
-            
-            // Повернення через 3 секунди
-            if (elapsed > CONFIG.TEXT_SHOW_TIME + 500) {
-                returnTextToOriginal();
-            }
-        }
-
-        function returnTextToOriginal() {
-            if (!prophecyAnimation.isActive || !activeProphecyMesh) return;
-            
-            const elapsed = Date.now() - prophecyAnimation.startTime;
-            const returnProgress = Math.min((elapsed - CONFIG.TEXT_SHOW_TIME - 500) / 500, 1);
-            
-            if (returnProgress >= 1) {
-                // Повертаємо все до початкового стану
-                activeProphecyMesh.scale.copy(prophecyAnimation.originalScale);
-                activeProphecyMesh.position.copy(prophecyAnimation.originalPosition);
-                activeProphecyMesh.rotation.copy(prophecyAnimation.originalRotation);
-                
-                // Скидаємо анімацію
-                prophecyAnimation.isActive = false;
-                activeProphecyMesh = null;
-                sphere.userData.pauseRotation = false;
-            } else {
-                // Анімація повернення
-                activeProphecyMesh.scale.lerp(prophecyAnimation.originalScale, returnProgress);
-                activeProphecyMesh.position.lerp(prophecyAnimation.originalPosition, returnProgress);
-                activeProphecyMesh.rotation.lerp(prophecyAnimation.originalRotation, returnProgress);
-            }
-        }
-
-        // ========== ІНІЦІАЛІЗАЦІЯ ТРЕКІНГУ ==========
-        async function initHandTracking() {
-            hands = new Hands({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                }
+            cam.start().catch(() => {
+                elements.handGuide.innerHTML = '<div style="color:#ff6b6b">⚠️ Камера недоступна</div>';
             });
-            
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.7,
-                minTrackingConfidence: 0.7,
-                selfieMode: false
-            });
-            
-            hands.onResults(onHandResults);
-            
-            const cameraSuccess = await startBackCamera();
-            if (!cameraSuccess) {
-                elements.handGuide.innerHTML = `
-                    <div style="color: #ff6b6b; font-size: 20px; margin-bottom: 10px;">❌ Помилка</div>
-                    <div style="color: #ccc; font-size: 14px;">Дозвольте доступ до камери</div>
-                `;
-                elements.testButton.style.display = 'block';
+        }
+
+        function onResults(results) {
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+                elements.handGuide.style.display = 'block';
+                isTouching = false;
                 return;
             }
-            
-            function processFrame() {
-                if (hands && elements.cameraView.readyState >= 2) {
-                    try {
-                        hands.send({ image: elements.cameraView });
-                    } catch (e) {
-                        console.error('Помилка обробки кадру:', e);
-                    }
-                }
-                requestAnimationFrame(processFrame);
-            }
-            
-            if (elements.cameraView.readyState >= 2) {
-                processFrame();
-            } else {
-                elements.cameraView.onloadeddata = processFrame;
-            }
-            
-            elements.testButton.style.display = 'block';
-            setTimeout(() => {
-                elements.testButton.style.display = 'none';
-            }, 5000);
-        }
 
-        // ========== ОБРОБКА ТРЕКІНГУ ==========
-        function onHandResults(results) {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                if (!handDetected) {
-                    handDetected = true;
-                    elements.handGuide.style.opacity = '0';
-                    setTimeout(() => {
-                        elements.handGuide.style.display = 'none';
-                    }, 400);
+            elements.handGuide.style.display = 'none';
+            const lm = results.multiHandLandmarks[0];
+
+            // Центр долоні
+            const palmX = (lm[0].x + lm[9].x)/2;
+            const palmY = (lm[0].y + lm[9].y)/2;
+            spherePos.x = (palmX*2-1)*2.8;
+            spherePos.y = -(palmY*2-1)*1.6 + 0.5;
+
+            // Вказівний палець
+            const tip = lm[8];
+            const tipX = (tip.x*2-1)*2.8;
+            const tipY = -(tip.y*2-1)*1.6 + 0.5;
+
+            const dist = Math.hypot(tipX - spherePos.x, tipY - spherePos.y);
+
+            if (dist < CONFIG.TOUCH_DISTANCE && !prophecyActive) {
+                if (!isTouching) {
+                    isTouching = true;
+                    touchStartTime = Date.now();
+                    sphere.userData.ring.material.color.setHex(0xff3366);
+                    sphere.userData.ring.material.opacity = 0.9;
                 }
-                
-                const landmarks = results.multiHandLandmarks[0];
-                
-                // Центр долоні
-                const wrist = landmarks[0];
-                const middleBase = landmarks[9];
-                
-                const palmX = (wrist.x + middleBase.x) / 2;
-                const palmY = (wrist.y + middleBase.y) / 2;
-                
-                // Мапування
-                let mappedX, mappedY;
-                if (usingBackCamera) {
-                    mappedX = (palmX - 0.5) * 0.7;
-                    mappedY = -(palmY - 0.5) * 0.5;
-                } else {
-                    mappedX = -(palmX - 0.5) * 0.7;
-                    mappedY = -(palmY - 0.5) * 0.5;
+
+                if (Date.now() - touchStartTime >= CONFIG.COUNTDOWN_TIME*1000 && !isCounting) {
+                    startCountdown();
                 }
-                
-                spherePosition.x = mappedX;
-                spherePosition.y = mappedY + 0.1;
-                
-                // ТОРКАННЯ
-                const indexTip = landmarks[8];
-                let touchX, touchY;
-                if (usingBackCamera) {
-                    touchX = (indexTip.x - 0.5) * 0.7;
-                    touchY = -(indexTip.y - 0.5) * 0.5;
-                } else {
-                    touchX = -(indexTip.x - 0.5) * 0.7;
-                    touchY = -(indexTip.y - 0.5) * 0.5;
-                }
-                
-                const distance = Math.sqrt(
-                    Math.pow(touchX - spherePosition.x, 2) + 
-                    Math.pow(touchY - spherePosition.y, 2)
-                );
-                
-                if (distance < CONFIG.TOUCH_DISTANCE) {
-                    if (!isTouching) {
-                        isTouching = true;
-                        touchStartTime = Date.now();
-                        ring.material.color.setHex(0x00ffff);
-                        ring.material.opacity = 0.85;
-                        elements.touchProgress.style.opacity = '1';
-                        
-                        clearTimeout(touchHoldTimer);
-                        touchHoldTimer = setTimeout(() => {
-                            if (isTouching && !isCounting) {
-                                startCountdown();
-                            }
-                        }, CONFIG.TOUCH_HOLD_TIME);
-                    }
-                    
-                    const holdTime = Date.now() - touchStartTime;
-                    const progress = Math.min(holdTime / CONFIG.TOUCH_HOLD_TIME, 1);
-                    updateTouchProgress(progress);
-                    
-                } else {
-                    if (isTouching) {
-                        isTouching = false;
-                        clearTimeout(touchHoldTimer);
-                        ring.material.color.setHex(0xffcc00);
-                        ring.material.opacity = 0.65;
-                        elements.touchProgress.style.opacity = '0';
-                        updateTouchProgress(0);
-                    }
-                }
-            } else {
-                if (handDetected) {
-                    handDetected = false;
-                    elements.handGuide.style.display = 'block';
-                    elements.handGuide.style.opacity = '1';
-                }
+            } else if (isTouching) {
                 isTouching = false;
-                clearTimeout(touchHoldTimer);
-                elements.touchProgress.style.opacity = '0';
+                sphere.userData.ring.material.color.setHex(0x4fc3f7);
+                sphere.userData.ring.material.opacity = 0.5;
             }
         }
 
-        function updateTouchProgress(progress) {
-            const circle = elements.progressCircle;
-            const circumference = 314;
-            const offset = circumference - progress * circumference;
-            circle.style.strokeDashoffset = offset;
-            
-            const r = Math.floor(255 * (1 - progress));
-            const g = Math.floor(255 * progress);
-            circle.style.stroke = `rgb(${r}, ${g}, 100)`;
-        }
-
-        // ========== ВІДЛІК 3 СЕКУНД ==========
         function startCountdown() {
-            if (isCounting || prophecyAnimation.isActive) return;
-            
-            isCounting = true;
-            currentCountdown = CONFIG.COUNTDOWN_TIME;
-            
-            elements.timer.textContent = currentCountdown;
-            elements.timer.style.opacity = '1';
-            elements.timer.style.color = '#00ff00';
-            
-            sphere.material.color.setHex(0xff00ff);
-            sphere.material.emissive.setHex(0xff00ff);
-            sphere.material.emissiveIntensity = 2.0;
-            sphere.userData.fastRotation = true;
-            
-            elements.touchProgress.style.opacity = '0';
-            
-            const countdownInterval = setInterval(() => {
-                currentCountdown--;
-                elements.timer.textContent = currentCountdown;
-                
-                const scale = 1 + (CONFIG.COUNTDOWN_TIME - currentCountdown) * 0.15;
-                elements.timer.style.transform = `scale(${scale})`;
-                
-                const colors = ['#ff0000', '#ff8800', '#ffff00'];
-                elements.timer.style.color = colors[currentCountdown] || '#00ff00';
-                
-                if (currentCountdown <= 0) {
-                    clearInterval(countdownInterval);
-                    elements.timer.style.transform = 'scale(1)';
+            if (isCounting || prophecyActive) return;
+            isCounting = true; prophecyActive = true;
+
+            elements.timer.style.opacity = 1;
+            elements.timer.style.animation = 'pulse 0.6s infinite';
+            let sec = CONFIG.COUNTDOWN_TIME;
+            elements.timer.textContent = sec;
+
+            sphere.material.emissive.setHex(0xff3366);
+            sphere.material.emissiveIntensity = 2;
+
+            const interval = setInterval(() => {
+                sec--;
+                elements.timer.textContent = sec;
+                if (sec <= 0) {
+                    clearInterval(interval);
+                    elements.timer.style.opacity = 0;
                     showProphecy();
                 }
             }, 1000);
         }
 
         function showProphecy() {
-            // Зупиняємо таймер
-            setTimeout(() => {
-                elements.timer.style.opacity = '0';
-            }, 500);
-            
-            // Вібрація
-            if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
-            }
-            
-            // Оновлюємо лічильник
+            if (navigator.vibrate) navigator.vibrate([200,100,200]);
+
+            const prophecy = PROPHECIES[Math.floor(Math.random()*PROPHECIES.length)];
+            updateProphecyText(prophecy);
+
+            prophecyTextGroup.position.copy(sphere.position);
+            prophecyTextGroup.position.y += 0.6;
+            prophecyTextGroup.lookAt(camera.position);
+            prophecyTextMesh.scale.setScalar(CONFIG.TEXT_SCALE_MULTIPLIER);
+
             prophecyCount++;
             elements.prophecyCount.textContent = prophecyCount;
-            
-            // Вибираємо випадковий текст
-            const randomIndex = Math.floor(Math.random() * textMeshes.length);
-            const selectedText = textMeshes[randomIndex];
-            
-            // Запускаємо анімацію тексту
-            startTextAnimation(selectedText);
-            
-            // Скидаємо стан після анімації
-            setTimeout(() => {
-                isCounting = false;
-                resetSphere();
-            }, CONFIG.TEXT_SHOW_TIME + 1000);
+
+            sphere.material.emissive.setHex(0x00ffff);
+            sphere.material.emissiveIntensity = 3;
+
+            setTimeout(resetAfterProphecy, CONFIG.PROPHECY_TIME*1000);
         }
 
-        function resetSphere() {
-            sphere.material.color.setHex(0x4a00e0);
-            sphere.material.emissive.setHex(0x8a2be2);
+        function resetAfterProphecy() {
+            prophecyTextMesh.material.opacity = 0;
+            prophecyTextMesh.scale.setScalar(1);
+            prophecyTextGroup.visible = false;
+
+            sphere.material.emissive.setHex(0x4fc3f7);
             sphere.material.emissiveIntensity = 0.7;
-            
-            ring.material.color.setHex(0xffcc00);
-            ring.material.opacity = 0.65;
+
+            prophecyActive = isCounting = isTouching = false;
         }
 
-        // ========== АНІМАЦІЯ ==========
         function animate() {
             requestAnimationFrame(animate);
-            
+
             if (sphere) {
-                // Обертання кулі (якщо не на паузі)
-                if (!sphere.userData.pauseRotation) {
-                    const rotationSpeed = sphere.userData.fastRotation ? 0.3 : 0.01;
-                    sphere.rotation.y += rotationSpeed;
-                    sphere.rotation.x += rotationSpeed * 0.5;
+                sphere.rotation.y += 0.008;
+                sphere.position.lerp(spherePos, 0.2);
+
+                // Внутрішні сніжинки
+                if (sphere.userData.snow) {
+                    const pos = sphere.userData.snow.geometry.attributes.position.array;
+                    const orig = sphere.userData.origPos;
+                    const t = Date.now()*0.001;
+                    for(let i=0; i<pos.length; i+=3){
+                        pos[i]   = orig[i]   + Math.sin(t*1.3 + i)*0.02;
+                        pos[i+1] = orig[i+1] + Math.cos(t*0.9 + i)*0.02;
+                        pos[i+2] = orig[i+2] + Math.sin(t*0.7 + i)*0.02;
+                    }
+                    sphere.userData.snow.geometry.attributes.position.needsUpdate = true;
                 }
-                
-                // Плавне переміщення кулі до долоні
-                sphere.position.x += (spherePosition.x - sphere.position.x) * 0.2;
-                sphere.position.y += (spherePosition.y - sphere.position.y) * 0.2;
-                
-                // Пульсація кільця
-                if (ring && !isCounting && !prophecyAnimation.isActive) {
-                    const pulse = Math.sin(Date.now() * 0.002) * 0.1 + 1;
-                    ring.scale.set(pulse, pulse, 1);
-                }
-                
-                // Оновлення позиції текстів (обертання з кулею)
-                if (!prophecyAnimation.isActive) {
-                    textMeshes.forEach((textMesh, i) => {
-                        if (textMesh !== activeProphecyMesh) {
-                            // Обертання тексту навколо кулі
-                            const time = Date.now() * 0.001;
-                            const userData = textMesh.userData;
-                            
-                            // Додаємо трохи анімації до кута
-                            const animatedAngle = userData.angle + time * 0.3;
-                            
-                            textMesh.position.x = Math.sin(animatedAngle) * userData.radius + sphere.position.x;
-                            textMesh.position.z = Math.cos(animatedAngle) * userData.radius + sphere.position.z;
-                            textMesh.position.y = sphere.position.y + Math.sin(time * 2 + i) * 0.02;
-                            
-                            // Повертаємо текст до кулі
-                            textMesh.lookAt(sphere.position);
-                        }
-                    });
-                }
-                
-                // Анімація пророцтва
-                if (prophecyAnimation.isActive) {
-                    updateTextAnimation();
+
+                if (sphere.userData.ring && !isCounting) {
+                    const pulse = Math.sin(Date.now()*0.003)*0.15 + 1;
+                    sphere.userData.ring.scale.set(pulse, pulse, 1);
                 }
             }
-            
+
+            if (prophecyTextGroup?.visible) {
+                prophecyTextGroup.position.y = sphere.position.y + 0.6;
+                prophecyTextGroup.lookAt(camera.position);
+            }
+
             renderer.render(scene, camera);
         }
 
-        // ========== ЗАПУСК ==========
-        window.addEventListener('load', async () => {
+        window.addEventListener('load', () => {
             initThreeJS();
-            await initHandTracking();
-            
+            initHands();
+
             window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.aspect = innerWidth/innerHeight;
                 camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setSize(innerWidth, innerHeight);
             });
-            
-            window.startCountdown = startCountdown;
         });
     </script>
 </body>
