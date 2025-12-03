@@ -5,83 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Куля Пророцтв</title>
 
-    <!-- Актуальний Three.js (працює на iOS!) -->
+    <!-- 1. Спочатку завантажуємо Three.js -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.min.js"></script>
 
-    <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- 2. Потім MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
     <!-- Український шрифт -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap&subset=cyrillic,cyrillic-ext" rel="stylesheet">
 
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#000; overflow:hidden; touch-action:none; font-family:'Roboto',sans-serif; }
-        #cameraView { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1; }
-        #canvas3d { position:fixed; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none; }
-        .info-panel { position:absolute; top:15px; left:15px; z-index:1000; background:rgba(0,0,0,0.85); padding:12px 18px; border-radius:12px; border:2px solid #8a2be2; color:#fff; backdrop-filter:blur(8px); }
-        .timer { position:absolute; top:20px; right:20px; font-size:60px; font-weight:900; color:#00ff00; text-shadow:0 0 20px #00ff00; z-index:1000; opacity:0; transition:opacity 0.4s; }
-        .instructions { position:absolute; bottom:20px; left:0; right:0; text-align:center; z-index:1000; background:rgba(0,0,0,0.75); padding:15px; color:#fff; backdrop-filter:blur(6px); }
-        .hand-guide { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.92); padding:30px; border-radius:20px; border:3px solid #00ffaa; text-align:center; color:#fff; z-index:100; transition:opacity 0.5s; }
-        .loading { position:fixed; inset:0; background:#000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#8a2be2; z-index:2000; transition:opacity 1s; }
-        .spinner { width:60px; height:60px; border:6px solid #8a2be233; border-top-color:#8a2be2; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:20px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .tap-to-continue { position:absolute; bottom:120px; left:50%; transform:translateX(-50%); background:rgba(0,255,255,0.2); color:#00ffff; padding:16px 32px; border-radius:50px; font-size:18px; font-weight:bold; z-index:10000; backdrop-filter:blur(10px); border:2px solid #00ffff; opacity:0; transition:opacity 0.5s; pointer-events:none; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;overflow:hidden;touch-action:none;font-family:'Roboto',sans-serif;color:#fff}
+        #cameraView{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1}
+        #canvas3d{position:fixed;top:0;left:0;width:100%;height:100%;z-index:2}
+        .info-panel{position:absolute;top:15px;left:15px;z-index:100;background:rgba(0,0,0,0.85);padding:12px 18px;border-radius:12px;border:2px solid #8a2be2;backdrop-filter:blur(8px)}
+        .timer{position:absolute;top:20px;right:20px;font-size:60px;font-weight:900;color:#00ff00;text-shadow:0 0 20px #00ff00;z-index:100;opacity:0}
+        .instructions{position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:100;background:rgba(0,0,0,0.75);padding:15px;backdrop-filter:blur(6px)}
+        .hand-guide{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);padding:30px;border-radius:20px;border:3px solid #00ffaa;text-align:center;z-index:100;transition:opacity .5s}
+        .loading{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:2000;transition:opacity 1s}
+        .spinner{width:60px;height:60px;border:6px solid #8a2be233;border-top-color:#8a2be2;border-radius:50%;animation:s 1s linear infinite;margin-bottom:20px}
+        @keyframes s{to{transform:rotate(360deg)}}
+        .tap{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,255,255,0.2);color:#00ffff;padding:16px 32px;border-radius:50px;font-size:18px;font-weight:bold;z-index:10000;backdrop-filter:blur(10px);border:2px solid #00ffff;opacity:0;transition:opacity .5s}
     </style>
 </head>
 <body>
 
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <div style="font-size:22px;">Куля Пророцтв</div>
-        <div style="font-size:16px; color:#aaa; margin-top:10px;">Запуск камери...</div>
-    </div>
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div style="font-size:22px">Куля Пророцтв</div>
+    <div style="font-size:16px;color:#aaa;margin-top:10px">Завантаження...</div>
+</div>
 
-    <div class="hand-guide" id="guide">
-        <div style="font-size:70px;">Palm Up</div>
-        <div style="font-size:22px; color:#00ffaa; margin:15px 0;">Покажіть долоню задній камері</div>
-        <div style="color:#ccc;">Утримуйте палець на кулі 3 секунди</div>
-    </div>
+<div class="hand-guide" id="guide">
+    <div style="font-size:70px">Palm Up</div>
+    <div style="font-size:22px;color:#00ffaa;margin:15px 0">Покажіть долоню задній камері</div>
+    <div style="color:#ccc">Утримуйте палець на кулі 3 секунди</div>
+</div>
 
-    <div class="info-panel">
-        <div style="font-size:20px; color:#ffcc00;">Куля Пророцтв</div>
-        <div style="margin-top:6px;">Отримано: <span id="count" style="color:#00ffaa; font-weight:bold;">0</span></div>
-    </div>
+<div class="info-panel">
+    <div style="font-size:20px;color:#ffcc00">Куля Пророцтв</div>
+    <div style="margin-top:6px">Отримано: <span id="count" style="color:#00ffaa;font-weight:bold">0</span></div>
+</div>
 
-    <div class="timer" id="timer">3</div>
-    <div class="instructions">Утримуйте палець на кулі 3 секунди</div>
-    <div class="tap-to-continue" id="tapMsg">Торкніться екрану, щоб продовжити</div>
+<div class="timer" id="timer">3</div>
+<div class="instructions">Утримуйте палець на кулі 3 секунди</div>
+<div class="tap" id="tapMsg">Торкніться екрану, щоб продовжити</div>
 
-    <video id="cameraView" autoplay playsinline muted></video>
-    <canvas id="canvas3d"></canvas>
+<video id="cameraView" autoplay playsinline muted></video>
+<canvas id="canvas3d"></canvas>
 
-    <script>
+<script>
+    // === ВСІ ФУНКЦІЇ ВСЕРЕДИНІ, щоб THREE точно був ===
+    (function () {
+        if (typeof THREE === 'undefined') {
+            alert('Помилка завантаження Three.js. Оновіть сторінку.');
+            return;
+        }
+
         const CONFIG = {
-            SPHERE_RADIUS: 0.05,        // 10 см у реальному світі
+            SPHERE_RADIUS: 0.05,
             TOUCH_DISTANCE: 0.13,
             HOLD_TIME: 3000,
-            TEXT_SCALE: 3.2,
-            SHOW_TIME: 3200
+            TEXT_SCALE: 3.3
         };
 
         const PROPHECIES = [
-            "ВСЕ БУДЕ УКРАЇНА", "ТИ СИЛЬНІШИЙ ЗА ДУМКИ", "МИР НЕЗАБАРОМ",
-            "ТВОЯ МРІЯ ЗБУДЕТЬСЯ", "ЛЮБОВ ВЖЕ ПОРУЧ", "ЗДОРОВ'Я ПОВЕРНЕТЬСЯ",
-            "УСПІХ ЧЕКАЄ НА ТЕБЕ", "ТИ ПЕРЕМОЖЕШ"
+            "ВСЕ БУДЕ УКРАЇНА","ТИ СИЛЬНІШИЙ","МИР НЕЗАБАРОМ","МРІЯ ЗБУДЕТЬСЯ",
+            "ЛЮБОВ ПОРУЧ","ЗДОРОВ'Я ПОВЕРНЕТЬСЯ","УСПІХ ЧЕКАЄ","ПЕРЕМОГА БЛИЗЬКО"
         ];
 
         let scene, camera, renderer, sphere, ring;
-        let hands, videoElement, canvas3d;
-        let handDetected = false;
-        let isHolding = false;
-        let holdStart = 0;
-        let prophecyCount = 0;
-        let activeText = null;
-        let isProphecyActive = false;
+        let hands, video = document.getElementById('cameraView');
+        let handDetected = false, isHolding = false, holdStart = 0, prophecyCount = 0;
+        let activeText = null, isProphecyActive = false;
 
-        const elements = {
+        const el = {
             loading: document.getElementById('loading'),
             guide: document.getElementById('guide'),
             timer: document.getElementById('timer'),
@@ -89,270 +89,196 @@
             tapMsg: document.getElementById('tapMsg')
         };
 
-        // ========== THREE.JS ==========
         function initThreeJS() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10);
+            camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.01, 10);
             camera.position.z = 0.01;
 
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambient);
             const light = new THREE.PointLight(0x8a2be2, 2, 3);
             light.position.set(0, 1, 1);
             scene.add(light);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
             // Куля
             const geo = new THREE.SphereGeometry(CONFIG.SPHERE_RADIUS, 64, 64);
-            const mat = new THREE.MeshPhongMaterial({
-                color: 0x4a00e0, emissive: 0x8a2be2, shininess: 100, transparent: true, opacity: 0.92
-            });
+            const mat = new THREE.MeshPhongMaterial({color:0x4a00e0, emissive:0x8a2be2, shininess:100, transparent:true, opacity:0.92});
             sphere = new THREE.Mesh(geo, mat);
             sphere.position.z = -0.35;
             scene.add(sphere);
 
-            // Кільце для торкання
-            const ringGeo = new THREE.RingGeometry(CONFIG.SPHERE_RADIUS * 1.3, CONFIG.SPHERE_RADIUS * 1.6, 48);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0 });
-            ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.rotation.x = -Math.PI / 2;
+            // Кільце
+            const rg = new THREE.RingGeometry(CONFIG.SPHERE_RADIUS*1.3, CONFIG.SPHERE_RADIUS*1.6, 48);
+            const rm = new THREE.MeshBasicMaterial({color:0x00ffff, transparent:true, opacity:0.4});
+            ring = new THREE.Mesh(rg, rm);
+            ring.rotation.x = -Math.PI/2;
             sphere.add(ring);
 
-            createOrbitingTexts();
+            createTexts();
             animate();
 
             setTimeout(() => {
-                elements.loading.style.opacity = '0';
-                setTimeout(() => elements.loading.style.display = 'none', 1000);
-            }, 1200);
+                el.loading.style.opacity = '0';
+                setTimeout(() => el.loading.style.display = 'none', 1000);
+            }, 1000);
         }
 
-        // ========== ТЕКСТИ НА ОРБІТІ ==========
-        function createOrbitingTexts() {
+        function createTexts() {
             const radius = CONFIG.SPHERE_RADIUS * 2.8;
-            const colors = [0x00ffff, 0xff00ff, 0xffff00, 0x00ff00, 0xff6600, 0xff3366, 0x33ff99, 0xffcc00];
+            const colors = [0x00ffff,0xff00ff,0xffff00,0x00ff00,0xff6600,0xff3366,0x33ff99,0xffcc00];
 
-            PROPHECIES.forEach((text, i) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024; canvas.height = 256;
-                const ctx = canvas.getContext('2d');
+            PROPHECIES.forEach((txt,i) => {
+                const cv = document.createElement('canvas');
+                cv.width = 1024; cv.height = 256;
+                const ctx = cv.getContext('2d');
                 ctx.font = 'bold 92px "Roboto", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 18;
-                ctx.strokeText(text, 512, 128);
-                ctx.fillStyle = '#' + colors[i].toString(16).padStart(6, '0');
-                ctx.fillText(text, 512, 128);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 18;
+                ctx.strokeText(txt, 512, 128);
+                ctx.fillStyle = '#'+colors[i].toString(16).padStart(6,'0');
+                ctx.fillText(txt, 512, 128);
 
-                const texture = new THREE.CanvasTexture(canvas);
-                const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
-                const geometry = new THREE.PlaneGeometry(0.28, 0.07);
-                const mesh = new THREE.Mesh(geometry, material);
+                const tex = new THREE.CanvasTexture(cv);
+                const mat = new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide});
+                const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.28,0.07), mat);
 
-                const angle = (i / PROPHECIES.length) * Math.PI * 2;
-                mesh.userData = { baseAngle: angle, radius, color: colors[i] };
-                mesh.position.x = Math.sin(angle) * radius;
-                mesh.position.z = Math.cos(angle) * radius;
+                const angle = (i/PROPHECIES.length)*Math.PI*2;
+                mesh.userData = {baseAngle:angle, radius};
+                mesh.position.x = Math.sin(angle)*radius;
+                mesh.position.z = Math.cos(angle)*radius;
                 mesh.lookAt(sphere.position);
                 scene.add(mesh);
             });
         }
 
-        // ========== АНІМАЦІЯ ==========
         function animate() {
             requestAnimationFrame(animate);
-
-            if (sphere && !isProphecyActive) {
+            if (!isProphecyActive) {
                 sphere.rotation.y += 0.015;
-                sphere.rotation.x += 0.008;
-
-                scene.children.forEach(obj => {
-                    if (obj.userData.radius && obj !== activeText) {
-                        const time = Date.now() * 0.0008;
-                        const angle = obj.userData.baseAngle + time;
-                        obj.position.x = Math.sin(angle) * obj.userData.radius + sphere.position.x;
-                        obj.position.z = Math.cos(angle) * obj.userData.radius + sphere.position.z;
-                        obj.position.y = sphere.position.y + Math.sin(time * 3 + obj.userData.baseAngle) * 0.03;
-                        obj.lookAt(sphere.position);
+                scene.children.forEach(o => {
+                    if (o.userData.radius && o!==activeText) {
+                        const t = Date.now()*0.0008;
+                        const a = o.userData.baseAngle + t;
+                        o.position.x = Math.sin(a)*o.userData.radius + sphere.position.x;
+                        o.position.z = Math.cos(a)*o.userData.radius + sphere.position.z;
+                        o.position.y = sphere.position.y + Math.sin(t*3+o.userData.baseAngle)*0.03;
+                        o.lookAt(sphere.position);
                     }
                 });
             }
-
             renderer.render(scene, camera);
         }
 
-        // ========== ТРЕКІНГ РУКИ ==========
         function onResults(results) {
-            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-                if (handDetected) {
-                    elements.guide.style.opacity = '1';
-                    handDetected = false;
-                }
-                isHolding = false;
-                ring.material.opacity = 0;
+            if (!results.multiHandLandmarks?.[0]) {
+                if (handDetected) { el.guide.style.opacity='1'; handDetected=false; }
+                isHolding = false; ring.material.opacity = 0.4;
                 return;
             }
 
-            if (!handDetected) {
-                handDetected = true;
-                elements.guide.style.opacity = '0';
-                setTimeout(() => elements.guide.style.display = 'none', 600);
-            }
+            if (!handDetected) { handDetected=true; el.guide.style.opacity='0'; setTimeout(()=>el.guide.style.display='none',600); }
 
-            const landmarks = results.multiHandLandmarks[0];
-            const wrist = landmarks[0];
-            const indexTip = landmarks[8];
+            const l = results.multiHandLandmarks[0];
+            const palmX = (l[0].x + l[9].x)/2;
+            const palmY = (l[0].y + l[9].y)/2;
 
-            // Центр долоні
-            const palmX = (wrist.x + landmarks[9].x) / 2;
-            const palmY = (wrist.y + landmarks[9].y) / 2;
+            sphere.position.x += ((palmX-0.5)*0.8 - sphere.position.x)*0.15;
+            sphere.position.y += ((0.5-palmY)*0.6 - sphere.position.y + 0.12)*0.15;
 
-            // Позиція кулі
-            sphere.position.x += ((palmX - 0.5) * 0.8 - sphere.position.x) * 0.15;
-            sphere.position.y += ((0.5 - palmY) * 0.6 - sphere.position.y + 0.12) * 0.15;
-
-            // Відстань від пальця до центру кулі
-            const dist = Math.hypot(
-                (indexTip.x - 0.5) * 0.8 - sphere.position.x,
-                (0.5 - indexTip.y) * 0.6 - sphere.position.y + 0.12
-            );
+            const dist = Math.hypot((l[8].x-0.5)*0.8 - sphere.position.x, (0.5-l[8].y)*0.6 - sphere.position.y + 0.12);
 
             if (dist < CONFIG.TOUCH_DISTANCE && !isProphecyActive) {
-                if (!isHolding) {
-                    isHolding = true;
-                    holdStart = Date.now();
-                    ring.material.opacity = 0.8;
-                }
-
-                const progress = Math.min((Date.now() - holdStart) / CONFIG.HOLD_TIME, 1);
-                ring.scale.set(1 + progress * 0.5, 1 + progress * 0.5, 1);
-                ring.material.opacity = 0.8 + progress * 0.2;
-
-                if (progress >= 1) {
-                    triggerProphecy();
-                }
+                if (!isHolding) { isHolding=true; holdStart=Date.now(); }
+                const prog = Math.min((Date.now()-holdStart)/CONFIG.HOLD_TIME, 1);
+                ring.scale.set(1+prog*0.5,1+prog*0.5,1);
+                ring.material.opacity = 0.8 + prog*0.2;
+                if (prog>=1) triggerProphecy();
             } else {
-                isHolding = false;
-                ring.scale.set(1, 1, 1);
+                isHolding=false;
+                ring.scale.set(1,1,1);
                 ring.material.opacity = 0.4;
             }
         }
 
-        // ========== ПРОРОЦТВО ==========
         function triggerProphecy() {
             if (isProphecyActive) return;
             isProphecyActive = true;
+            if (navigator.vibrate) navigator.vibrate([200,100,200]);
 
-            navigator.vibrate?.([200, 100, 200]);
+            const texts = scene.children.filter(o=>o.userData.radius);
+            activeText = texts[Math.floor(Math.random()*texts.length)];
 
-            // Випадковий текст
-            const texts = scene.children.filter(o => o.userData.radius);
-            activeText = texts[Math.floor(Math.random() * texts.length)];
-
-            // Зупиняємо все
-            sphere.userData.paused = true;
-
-            // Переміщуємо текст перед камерою
             activeText.position.set(0, 0.12, -0.45);
             activeText.lookAt(0, 0.15, 0);
-            activeText.scale.set(0.01, 0.01, 0.01);
-
-            // Анімація збільшення
-            const start = performance.now();
-            function grow(time) {
-                const elapsed = time - start;
-                const p = Math.min(elapsed / 700, 1);
-                const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-                const scale = ease * CONFIG.TEXT_SCALE;
-                activeText.scale.set(scale, scale, scale);
-
-                if (p < 1) requestAnimationFrame(grow);
-                else setTimeout(showTapMessage, 800);
-            }
-            requestAnimationFrame(grow);
+            activeText.scale.set(0.01,0.01,0.01);
 
             prophecyCount++;
-            elements.count.textContent = prophecyCount;
+            el.count.textContent = prophecyCount;
+
+            const start = performance.now();
+            function grow(t) {
+                const p = Math.min((t-start)/700,1);
+                const ease = p<0.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;
+                activeText.scale.set(ease*CONFIG.TEXT_SCALE, ease*CONFIG.TEXT_SCALE, ease*CONFIG.TEXT_SCALE);
+                if (p<1) requestAnimationFrame(grow);
+                else setTimeout(showTap, 600);
+            }
+            requestAnimationFrame(grow);
         }
 
-        function showTapMessage() {
-            elements.tapMsg.style.opacity = '1';
-            elements.tapMsg.style.pointerEvents = 'auto';
+        function showTap() {
+            el.tapMsg.style.opacity = '1';
+            const cont = () => {
+                el.tapMsg.style.opacity = '0';
+                document.getElementById('canvas3d').removeEventListener('click', cont);
+                document.getElementById('canvas3d').removeEventListener('touchstart', cont);
 
-            const continueHandler = () => {
-                elements.tapMsg.style.opacity = '0';
-                elements.tapMsg.style.pointerEvents = 'none';
-                canvas3d.removeEventListener('click', continueHandler);
-                canvas3d.removeEventListener('touchstart', continueHandler);
-
-                // Повернення тексту на орбіту
-                const start = performance.now();
                 const orig = {
-                    x: Math.sin(activeText.userData.baseAngle) * activeText.userData.radius,
-                    z: Math.cos(activeText.userData.baseAngle) * activeText.userData.radius
+                    x: Math.sin(activeText.userData.baseAngle)*activeText.userData.radius,
+                    z: Math.cos(activeText.userData.baseAngle)*activeText.userData.radius
                 };
-
-                function shrink(time) {
-                    const elapsed = time - start;
-                    const p = Math.min(elapsed / 800, 1);
-                    const ease = 1 - Math.pow(1 - p, 3);
-                    const scale = CONFIG.TEXT_SCALE + (0.8 - CONFIG.TEXT_SCALE) * ease;
-                    activeText.scale.set(scale, scale, scale);
-
+                const start = performance.now();
+                function shrink(t) {
+                    const p = Math.min((t-start)/800,1);
+                    const ease = 1-Math.pow(1-p,3);
+                    const sc = CONFIG.TEXT_SCALE + (0.8-CONFIG.TEXT_SCALE)*ease;
+                    activeText.scale.set(sc,sc,sc);
                     activeText.position.x = THREE.MathUtils.lerp(0, orig.x + sphere.position.x, ease);
                     activeText.position.y = THREE.MathUtils.lerp(0.12, sphere.position.y, ease);
                     activeText.position.z = THREE.MathUtils.lerp(-0.45, orig.z + sphere.position.z, ease);
-
-                    if (p < 1) requestAnimationFrame(shrink);
-                    else {
-                        activeText = null;
-                        isProphecyActive = false;
-                        ring.material.opacity = 0.4;
-                    }
+                    if (p<1) requestAnimationFrame(shrink);
+                    else { activeText=null; isProphecyActive=false; }
                 }
                 requestAnimationFrame(shrink);
             };
-
-            canvas3d.addEventListener('click', continueHandler);
-            canvas3d.addEventListener('touchstart', continueHandler);
+            document.getElementById('canvas3d').addEventListener('click', cont);
+            document.getElementById('canvas3d').addEventListener('touchstart', cont);
         }
 
-        // ========== ЗАПУСК ==========
-        window.onload = async () => {
-            videoElement = document.getElementById('cameraView');
-            canvas3d = document.getElementById('canvas3d');
-
+        // === ЗАПУСК ===
+        window.addEventListener('load', async () => {
             initThreeJS();
 
-            const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({ image: videoElement });
-                },
-                width: 1280,
-                height: 720
-            });
-
-            hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.7,
-                minTrackingConfidence: 0.7
-            });
+            hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+            hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7});
             hands.onResults(onResults);
 
+            const camera = new Camera(video, {
+                onFrame: async () => await hands.send({image: video}),
+                width: 1280, height: 720
+            });
             await camera.start();
-        };
+        });
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = innerWidth/innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(innerWidth, innerHeight);
         });
-    </script>
+    })();
+</script>
 </body>
 </html>
