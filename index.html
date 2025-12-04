@@ -389,10 +389,10 @@
                 🔮 Куля Пророцтв
             </div>
             <div style="color: #aaa; font-size: 16px; margin-top: 20px;">
-                Запуск магії...
+                Завантаження магії...
             </div>
-            <div style="margin-top: 30px; font-size: 14px; color: #00ffaa;">
-                Налаштовую задню камеру...
+            <div style="margin-top: 30px; font-size: 14px; color: #00ffaa;" id="loadingStatus">
+                Очікування Three.js...
             </div>
         </div>
     </div>
@@ -536,11 +536,38 @@
             touchProgress: document.getElementById('touchProgress'),
             progressCircle: document.querySelector('.progress-circle'),
             magicDust: document.getElementById('magicDust'),
-            tapToContinue: document.getElementById('tapToContinue')
+            tapToContinue: document.getElementById('tapToContinue'),
+            loadingStatus: document.getElementById('loadingStatus')
         };
+       
+        // ========== ПЕРЕВІРКА THREE.JS ==========
+        function waitForThreeJS() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 секунд очікування
+               
+                function check() {
+                    attempts++;
+                    elements.loadingStatus.textContent = `Завантаження Three.js... (${attempts}/${maxAttempts})`;
+                   
+                    if (typeof THREE !== 'undefined') {
+                        elements.loadingStatus.textContent = 'Three.js завантажено!';
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Three.js не завантажився'));
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                }
+               
+                check();
+            });
+        }
        
         // ========== ЗАПУСК КАМЕРИ ==========
         async function startCamera() {
+            elements.loadingStatus.textContent = 'Налаштування камери...';
+           
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
            
@@ -570,9 +597,11 @@
                 const settings = track.getSettings();
                 usingBackCamera = settings.facingMode === 'environment';
                
+                elements.loadingStatus.textContent = 'Камера готова!';
                 return true;
             } catch (error) {
                 console.warn('Помилка камери:', error);
+                elements.loadingStatus.textContent = 'Спроба будь-якої камери...';
                
                 // Спроба будь-якої камери
                 try {
@@ -580,9 +609,11 @@
                     cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                     elements.cameraView.srcObject = cameraStream;
                     usingBackCamera = false;
+                    elements.loadingStatus.textContent = 'Камера (фронтальна) готова!';
                     return true;
                 } catch (fallbackError) {
                     console.error('Камера недоступна:', fallbackError);
+                    elements.loadingStatus.textContent = 'Камера недоступна';
                     return false;
                 }
             }
@@ -590,6 +621,9 @@
        
         // ========== ІНІЦІАЛІЗАЦІЯ THREE.JS ==========
         function initThreeJS() {
+            console.log('Three.js доступний:', typeof THREE);
+            elements.loadingStatus.textContent = 'Ініціалізація 3D...';
+           
             // Перевірка WebGL
             try {
                 const canvas = document.createElement('canvas');
@@ -655,6 +689,8 @@
                 scene.add(light);
             });
            
+            elements.loadingStatus.textContent = 'Створення магічної кулі...';
+           
             // Створення кулі
             createMagicSphere();
            
@@ -672,7 +708,7 @@
                         elements.handGuide.style.opacity = '1';
                     }, 50);
                 }, 800);
-            }, 2000);
+            }, 1000);
         }
        
         // ========== СТВОРЕННЯ МАГІЧНОЇ КУЛІ ==========
@@ -1001,6 +1037,17 @@
        
         // ========== ІНІЦІАЛІЗАЦІЯ ТРЕКІНГУ ==========
         async function initHandTracking() {
+            elements.loadingStatus.textContent = 'Завантаження MediaPipe...';
+           
+            // Перевірка MediaPipe
+            if (typeof Hands === 'undefined') {
+                elements.loadingStatus.textContent = 'Помилка: MediaPipe не завантажився';
+                setTimeout(() => {
+                    elements.loadingStatus.textContent = 'Спроба продовжити без MediaPipe...';
+                }, 2000);
+                return;
+            }
+           
             hands = new Hands({
                 locateFile: (file) => {
                     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -1299,37 +1346,74 @@
         }
        
         // ========== ЗАПУСК ==========
-        window.addEventListener('load', async () => {
-            initThreeJS();
-            await initHandTracking();
-           
-            // Обробка торкання екрану
-            elements.canvas3d.addEventListener('click', handleScreenTap);
-            elements.canvas3d.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                handleScreenTap();
-            });
-           
-            // Обробка розміру вікна
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-           
-            // Додаткові анімації
-            function updateMagicDust() {
-                const time = Date.now() * 0.001;
-                elements.magicDust.style.background = `
-                    radial-gradient(circle at ${50 + Math.sin(time) * 10}% ${50 + Math.cos(time) * 10}%, 
-                        rgba(255, 0, 255, 0.1) 0%,
-                        rgba(0, 255, 255, 0.08) 20%,
-                        transparent 60%)
+        async function initApp() {
+            try {
+                // Чекаємо на Three.js
+                await waitForThreeJS();
+               
+                // Ініціалізуємо Three.js
+                initThreeJS();
+               
+                // Ініціалізуємо трекінг
+                await initHandTracking();
+               
+                // Обробка торкання екрану
+                elements.canvas3d.addEventListener('click', handleScreenTap);
+                elements.canvas3d.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    handleScreenTap();
+                });
+               
+                // Обробка розміру вікна
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+               
+                // Додаткові анімації
+                function updateMagicDust() {
+                    const time = Date.now() * 0.001;
+                    elements.magicDust.style.background = `
+                        radial-gradient(circle at ${50 + Math.sin(time) * 10}% ${50 + Math.cos(time) * 10}%, 
+                            rgba(255, 0, 255, 0.1) 0%,
+                            rgba(0, 255, 255, 0.08) 20%,
+                            transparent 60%)
+                    `;
+                    requestAnimationFrame(updateMagicDust);
+                }
+                updateMagicDust();
+               
+            } catch (error) {
+                console.error('Помилка ініціалізації:', error);
+                elements.loading.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="font-size: 32px; margin-bottom: 20px; color: #ff6b6b;">❌</div>
+                        <div style="font-size: 20px; color: white; margin-bottom: 15px;">
+                            Помилка завантаження
+                        </div>
+                        <div style="color: #aaa; font-size: 16px; margin-bottom: 20px;">
+                            ${error.message}
+                        </div>
+                        <button onclick="location.reload()" style="
+                            background: linear-gradient(45deg, #ff00ff, #00ffff);
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 25px;
+                            font-size: 16px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        ">
+                            Спробувати знову
+                        </button>
+                    </div>
                 `;
-                requestAnimationFrame(updateMagicDust);
             }
-            updateMagicDust();
-        });
+        }
+       
+        // Запуск додатку при завантаженні сторінки
+        document.addEventListener('DOMContentLoaded', initApp);
        
         // Додаємо обробку стилів для безпечних зон
         document.addEventListener('DOMContentLoaded', () => {
